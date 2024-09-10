@@ -1,32 +1,61 @@
-﻿using Entities;
+﻿using System.Formats.Tar;
+using Entities;
 using RepositoryContracts;
 
 namespace InMemoryRepositories;
 
 public class CommentInMemoryRepository : ICommentRepository
 {
-    public Task<Comment> AddComment(Comment comment)
+    List<Comment> comments = new List<Comment>();
+
+    public Task<Comment> AddCommentAsync(Comment comment)
     {
-        throw new NotImplementedException();
+        comment.CommentId = comments.Any()
+            ? comments.Max(c => c.CommentId) + 1
+            : 1;
+        comments.Add(comment);
+        return Task.FromResult(comment);
     }
 
-    public Task UpdateComment(Comment comment)
+    public Task UpdateCommentAsync(Comment comment)
     {
-        throw new NotImplementedException();
+        Comment? existingComment = comments.SingleOrDefault(c => c.CommentId == comment.CommentId);
+        if (existingComment is null)
+        {
+            throw new InvalidOperationException($"Comment with ID '{comment.CommentId}' not found");
+        }
+
+        comments.Remove(existingComment);
+        comments.Add(comment);
+        return Task.CompletedTask;
+    }
+    
+
+public Task DeleteCommentAsync(int id)
+{
+    Comment? commentToRemove = comments.SingleOrDefault(c => c.CommentId == id);
+    if (commentToRemove is null)
+    {
+        throw new InvalidOperationException($"Comment with ID '{id}' not found");
+        
     }
 
-    public Task DeleteComment(int id)
-    {
-        throw new NotImplementedException();
-    }
+    return Task.CompletedTask;
+}
 
     public Task<Comment> GetSingleAsync(int commentId)
     {
-        throw new NotImplementedException();
+        Comment? comment = comments.Single(c => c.CommentId == commentId);
+        if (comment is null)
+        {
+            throw new InvalidOperationException($"Comment with ID '{commentId} not found");
+        }
+
+        return Task.FromResult(comment);
     }
 
     public IQueryable<Comment> GetMany()
     {
-        throw new NotImplementedException();
+        return comments.AsQueryable();
     }
 }
