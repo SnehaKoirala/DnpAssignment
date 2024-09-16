@@ -6,7 +6,18 @@ namespace InMemoryRepositories;
 
 public class PostInMemoryRepository : IPostRepository
 {
-    List<Post> posts = new List<Post>();
+    private readonly List<Post> posts = new();
+    
+    public PostInMemoryRepository()
+    {
+        _ = AddAsync(new Post("Cat discussion", "Cats are pretty neat, sometimes.", 1)).Result;
+        _ = AddAsync(new Post("Cat discussion 2", "Cat dropped a dead bird in my bed. No longer neat.", 1)).Result;
+        _ = AddAsync(new Post("Dog discussion", "Dogs are just far superior to cats. EOD.", 3)).Result;
+        _ = AddAsync(new Post("Weather?", "So, does anyone else like weather?", 2)).Result;
+        _ = AddAsync(new Post("DNP QA", "This post is for DNP discussions, or if you need help with stuff.", 4)).Result;
+        _ = AddAsync(new Post("Best lawn mower?", "What's the bet lawn mower robot to mow my living room carpet?", 3)).Result;
+    }
+    
     public Task<Post> AddAsync(Post post)
     {
         
