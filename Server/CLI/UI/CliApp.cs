@@ -45,8 +45,10 @@ public class CliApp
     // Method to handle post creation
     private async Task CreatePostAsync()
     {
-        var createPostView = new CreatePostView(PostRepository); 
-        await createPostView.AddPostAsync();  
+        var createPostView = new CreatePostView(PostRepository);
+        await createPostView.AddPostAsync();
+        Console.WriteLine("Press Enter to return to the main menu.");
+        Console.ReadLine();
     }
     
 }
