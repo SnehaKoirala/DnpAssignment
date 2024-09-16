@@ -7,27 +7,61 @@ public class CreateCommentView
 {
     private readonly ICommentRepository commentRepository;
     private readonly IPostRepository postRepository;
+    private readonly IUserRepository userRepository;
 
-    public CreateCommentView(ICommentRepository commentRepository, IPostRepository postRepository)
+    public CreateCommentView(ICommentRepository commentRepository, IPostRepository postRepository, IUserRepository userRepository)
     {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
+        this.userRepository = userRepository;
     }
 
     public async Task AddCommentAsync()
     {
-        Console.WriteLine("Enter the post ID to comment on:");
-        int postId = int.Parse(Console.ReadLine());
+        Console.WriteLine("Do you want to comment based on (1) Post ID or (2) User ID?");
+        string choice = Console.ReadLine();
 
-        var post = await postRepository.GetSingleAsync(postId);
-        if (post == null)
+        int postId = 0;
+        int userId = 0;
+
+        if (choice == "1")
         {
-            Console.WriteLine("Post not found.");
+            Console.WriteLine("Enter the post ID to comment on:");
+            postId = int.Parse(Console.ReadLine());
+
+            var post = await postRepository.GetSingleAsync(postId);
+            if (post == null)
+            {
+                throw new InvalidOperationException($"Post with ID '{postId}' not found.");
+            }
+
+            userId = post.UserId;
+        }
+        else if (choice == "2")
+        {
+            Console.WriteLine("Enter the user ID to comment as:");
+            userId = int.Parse(Console.ReadLine());
+
+            var user = await userRepository.GetSingleAsync(userId);
+            if (user == null)
+            {
+                throw new InvalidOperationException($"User with ID '{userId}' not found.");
+            }
+
+            Console.WriteLine("Enter the post ID to comment on:");
+            postId = int.Parse(Console.ReadLine());
+
+            var post = await postRepository.GetSingleAsync(postId);
+            if (post == null)
+            {
+                throw new InvalidOperationException($"Post with ID '{postId}' not found.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Invalid choice.");
             return;
         }
-
-        Console.WriteLine("Enter your user ID:");
-        int userId = int.Parse(Console.ReadLine());
 
         Console.WriteLine("Enter your comment:");
         string? commentText = Console.ReadLine();

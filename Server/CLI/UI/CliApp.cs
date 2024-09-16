@@ -80,7 +80,7 @@ public class CliApp
     // Method to handle comment creation
     private async Task AddCommentAsync()
     {
-        var createCommentView = new CreateCommentView(CommentRepository, PostRepository);
+        var createCommentView = new CreateCommentView(CommentRepository, PostRepository, UserRepository);
         await createCommentView.AddCommentAsync();
         Console.WriteLine("Press Enter to return to the main menu.");
         Console.ReadLine();
