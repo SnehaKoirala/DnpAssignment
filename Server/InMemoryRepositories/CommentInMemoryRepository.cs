@@ -76,6 +76,7 @@ public Task DeleteCommentAsync(int id)
         
     }
 
+    comments.Remove(commentToRemove);
     return Task.CompletedTask;
 }
 
