@@ -6,10 +6,12 @@ namespace CLI.UI.ManagePosts;
 public class CreatePostView
 {
     private readonly IPostRepository postRepository;
+    private readonly User currentUser;
 
-    public CreatePostView(IPostRepository postRepository)
+    public CreatePostView(IPostRepository postRepository, User currentUser)
     {
-        this.postRepository = postRepository; 
+        this.postRepository = postRepository;
+        this.currentUser = currentUser;
     }
 
     public async Task AddPostAsync()
@@ -20,21 +22,17 @@ public class CreatePostView
         Console.WriteLine("Enter post body:");
         string? body1 = Console.ReadLine();
         
-        Console.WriteLine("Enter userId:");
-        int userId1 = int.Parse(Console.ReadLine());
-        
-       
-        //Create a new post
-        Post newPost = new Post(title1, body1, userId1);
+        // Create a new post with the current user's ID
+        Post newPost = new Post(title1, body1, currentUser.UserId);
 
         Post createdPost = await postRepository.AddAsync(newPost);
 
         if (createdPost != null)
         {
             Console.WriteLine("Post Created Successfully:");
-            Console.WriteLine($"Title:{createdPost.Title}");
-            Console.WriteLine($"Body:{createdPost.Body}");
-            Console.WriteLine($"UserId:{createdPost.UserId}");
+            Console.WriteLine($"Title: {createdPost.Title}");
+            Console.WriteLine($"Body: {createdPost.Body}");
+            Console.WriteLine($"UserId: {createdPost.UserId}");
         }
         else
         {

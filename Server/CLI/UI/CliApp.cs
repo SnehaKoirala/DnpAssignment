@@ -2,6 +2,7 @@
 using CLI.UI.ManagePosts;
 using CLI.UI.ManageUsers;
 using RepositoryContracts;
+using Entities;
 
 namespace CLI.UI;
 
@@ -10,6 +11,7 @@ public class CliApp
     private IUserRepository UserRepository { get; set; }
     private ICommentRepository CommentRepository { get; set; }
     private IPostRepository PostRepository { get; set; }
+    private User? CurrentUser { get; set; }
 
     public CliApp(IUserRepository userRepository, ICommentRepository commentRepository, IPostRepository postRepository)
     {
@@ -17,58 +19,93 @@ public class CliApp
         CommentRepository = commentRepository;
         PostRepository = postRepository;
     }
-    
+
     public async Task StartAsync()
     {
         while (true)
         {
             Console.WriteLine("Welcome to the CLI App! Choose an option:");
-            Console.WriteLine("1. Create a Post");
-            Console.WriteLine("2. Exit");
-            Console.WriteLine("3. Create User");
-            Console.WriteLine("4. Add Comment");
-            Console.WriteLine("5. Display Posts");
-            Console.WriteLine("6. View Post Details");
+            Console.WriteLine("1. Login");
+            Console.WriteLine("2. Create User");
+            Console.WriteLine("3. Display Posts");
+            Console.WriteLine("4. View Post Details");
+            Console.WriteLine("5. Exit");
 
             var input = Console.ReadLine();
 
             switch (input)
             {
                 case "1":
-                    await CreatePostAsync();
-                    break;
-                case "3":
-                    await CreateUserAsync();
-                    break;
-                case "4":
-                    await AddCommentAsync();
-                    break;
-                case "5":
-                    await DisplayPostsAsync();
-                    break;
-                case "6":
-                    await ViewPostDetailsAsync();
+                    await LoginAsync();
                     break;
                 case "2":
+                    await CreateUserAsync();
+                    break;
+                case "3":
+                    await DisplayPostsAsync();
+                    break;
+                case "4":
+                    await ViewPostDetailsAsync();
+                    break;
+                case "5":
                     Console.WriteLine("Exiting the app.");
                     return;
                 default:
-                    Console.WriteLine("Invalid option. Please try again.");
+                    Console.WriteLine("Oooops, you didn't press something right. Exiting the program.");
+                    Environment.Exit(0);
                     break;
+            }
+
+            if (CurrentUser != null)
+            {
+                Console.WriteLine("Choose an option:");
+                Console.WriteLine("6. Create a Post");
+                Console.WriteLine("7. Add Comment");
+                Console.WriteLine("8. Logout");
+
+                input = Console.ReadLine();
+
+                switch (input)
+                {
+                    case "6":
+                        await CreatePostAsync();
+                        break;
+                    case "7":
+                        await AddCommentAsync();
+                        break;
+                    case "8":
+                        CurrentUser = null;
+                        Console.WriteLine("Logged out successfully.");
+                        break;
+                    default:
+                        Console.WriteLine("Oooops, you didn't press something right. Exiting the program.");
+                        Environment.Exit(0);
+                        break;
+                }
             }
         }
     }
-
-    // Method to handle post creation
-    private async Task CreatePostAsync()
+    private async Task LoginAsync()
     {
-        var createPostView = new CreatePostView(PostRepository);
-        await createPostView.AddPostAsync();
-        Console.WriteLine("Press Enter to return to the main menu.");
-        Console.ReadLine();
+        Console.WriteLine("Enter your username:");
+        string? username = Console.ReadLine();
+
+        Console.WriteLine("Enter your password:");
+        string? password = Console.ReadLine();
+
+        var user = await UserRepository.GetUserByUsernameAndPasswordAsync(username, password);
+        if (user != null)
+        {
+            CurrentUser = user;
+            Console.WriteLine("Login successful.");
+        }
+        else
+        {
+            Console.WriteLine("Invalid username or password. Exiting the program.");
+            Environment.Exit(0);
+        }
     }
 
-    // Method to handle user creation
     private async Task CreateUserAsync()
     {
         var createUserView = new CreateUserView(UserRepository);
@@ -77,15 +114,34 @@ public class CliApp
         Console.ReadLine();
     }
 
-    // Method to handle comment creation
+    private async Task CreatePostAsync()
+    {
+        if (CurrentUser == null)
+        {
+            Console.WriteLine("You need to be logged in to create a post.");
+            return;
+        }
+
+        var createPostView = new CreatePostView(PostRepository, CurrentUser);
+        await createPostView.AddPostAsync();
+        Console.WriteLine("Press Enter to return to the main menu.");
+        Console.ReadLine();
+    }
+
     private async Task AddCommentAsync()
     {
-        var createCommentView = new CreateCommentView(CommentRepository, PostRepository, UserRepository);
+        if (CurrentUser == null)
+        {
+            Console.WriteLine("You need to be logged in to add a comment.");
+            return;
+        }
+
+        var createCommentView = new CreateCommentView(CommentRepository, PostRepository, CurrentUser);
         await createCommentView.AddCommentAsync();
         Console.WriteLine("Press Enter to return to the main menu.");
         Console.ReadLine();
     }
-    // Method to display posts
+
     private async Task DisplayPostsAsync()
     {
         var listPostView = new ListPostView(PostRepository);
@@ -93,7 +149,7 @@ public class CliApp
         Console.WriteLine("Press Enter to return to the main menu.");
         Console.ReadLine();
     }
-    // Method to view specific post details
+
     private async Task ViewPostDetailsAsync()
     {
         Console.WriteLine("Enter the Post ID:");

@@ -9,5 +9,5 @@ public interface IUserRepository
     Task DeleteUserAsync(int id);
     Task<User> GetSingleAsync(int userId);
     IQueryable<User> GetMany();
-    
+    Task<User?> GetUserByUsernameAndPasswordAsync(string username, string password);
 }
