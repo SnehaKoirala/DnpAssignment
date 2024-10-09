@@ -43,7 +43,7 @@ namespace FileRepositories;
                 throw new InvalidOperationException($"User with ID '{user.UserId}' not found");
             }
             
-            existingUser.Username = user.Username;
+            existingUser.UserName = user.UserName;
             existingUser.Password = user.Password;
             
             userAsJson = JsonSerializer.Serialize(users);
@@ -93,7 +93,7 @@ namespace FileRepositories;
             string userAsJson = await File.ReadAllTextAsync(filePath);
             List<User> users = JsonSerializer.Deserialize<List<User>>(userAsJson)!;
             
-            User? user = users.SingleOrDefault(u => u.Username == username && u.Password == password); 
+            User? user = users.SingleOrDefault(u => u.UserName == username && u.Password == password); 
             return user;
         }
     }
