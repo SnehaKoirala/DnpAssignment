@@ -9,10 +9,10 @@ public class UserInMemoryRepository : IUserRepository
 
     public UserInMemoryRepository()
     {
-        _ = AddUserAsync(new User("trmo", "1234", 0)).Result;
-        _ = AddUserAsync(new User("mivi", "4321", 0)).Result;
-        _ = AddUserAsync(new User("jknr", "1243", 0)).Result;
-        _ = AddUserAsync(new User("kasr", "2143", 0)).Result;
+        _ = AddUserAsync(new User("trmo", "1234")).Result;
+        _ = AddUserAsync(new User("mivi", "4321")).Result;
+        _ = AddUserAsync(new User("jknr", "1243")).Result;
+        _ = AddUserAsync(new User("kasr", "2143")).Result;
     }
 
     public Task<User> AddUserAsync(User user)
