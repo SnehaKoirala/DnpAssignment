@@ -21,7 +21,7 @@ namespace CLI.UI.ManageUsers
             string? password = Console.ReadLine();
 
             // Create a new user without specifying the userId
-            User newUser = new User(username, password, 0);
+            User newUser = new User(username, password);
 
             try
             {
@@ -30,7 +30,7 @@ namespace CLI.UI.ManageUsers
                 if (createdUser != null)
                 {
                     Console.WriteLine("User Created Successfully:");
-                    Console.WriteLine($"Username: {createdUser.Username}");
+                    Console.WriteLine($"Username: {createdUser.UserName}");
                     Console.WriteLine($"You know your password right?");
                     Console.WriteLine($"UserId: {createdUser.UserId}");
                 }

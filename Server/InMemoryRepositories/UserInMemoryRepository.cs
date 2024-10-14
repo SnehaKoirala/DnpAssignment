@@ -9,17 +9,17 @@ public class UserInMemoryRepository : IUserRepository
 
     public UserInMemoryRepository()
     {
-        _ = AddUserAsync(new User("trmo", "1234", 0)).Result;
-        _ = AddUserAsync(new User("mivi", "4321", 0)).Result;
-        _ = AddUserAsync(new User("jknr", "1243", 0)).Result;
-        _ = AddUserAsync(new User("kasr", "2143", 0)).Result;
+        _ = AddUserAsync(new User("trmo", "1234")).Result;
+        _ = AddUserAsync(new User("mivi", "4321")).Result;
+        _ = AddUserAsync(new User("jknr", "1243")).Result;
+        _ = AddUserAsync(new User("kasr", "2143")).Result;
     }
 
     public Task<User> AddUserAsync(User user)
     {
-        if (users.Any(u => u.Username == user.Username))
+        if (users.Any(u => u.UserName == user.UserName))
         {
-            throw new InvalidOperationException($"Username '{user.Username}' is already taken.");
+            throw new InvalidOperationException($"Username '{user.UserName}' is already taken.");
         }
 
         user.UserId = users.Any() ? users.Max(u => u.UserId) + 1 : 1;
@@ -70,7 +70,7 @@ public class UserInMemoryRepository : IUserRepository
 
     public Task<User?> GetUserByUsernameAndPasswordAsync(string username, string password)
     {
-        User? user = users.SingleOrDefault(u => u.Username == username && u.Password == password);
+        User? user = users.SingleOrDefault(u => u.UserName == username && u.Password == password);
         return Task.FromResult(user);
     }
 }
