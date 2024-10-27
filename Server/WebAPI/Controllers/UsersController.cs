@@ -15,8 +15,9 @@ public class UsersController : ControllerBase
     {
         this.userRepo = userRepo;
     }
-
-
+    
+    
+    
 // Create Endpoints 
 // POST: /Users
     [HttpPost]
@@ -124,9 +125,10 @@ public class UsersController : ControllerBase
             Id = u.UserId,
             UserName = u.UserName
         }).ToList();
-
         return Ok(userDtos);
     }
+    
+    
     
     private async Task VerifyUserNameIsAvailableAsync(string username)
     {
