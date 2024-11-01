@@ -1,0 +1,58 @@
+﻿@page "/Post"
+@using ApiContracts.Post
+@using BlazorApp.Services
+@rendermode InteractiveServer
+@inject HttpPostService HttpPostService
+<PageTitle>Posts</PageTitle>
+
+<h3>Create a new post </h3>
+
+<ol>
+    <li>
+        <input @bind ="title" placeholder="Enter Title" />
+        <input @bind = "content" placeholder = "Enter Content"/>
+        <input @bind = "userId" placeholder="Enter UserId" type ="number" />
+        <button @onclick = "AddPost"> Add Post</button>
+        <p style = "color: red">@errorMessage</p>
+        <p style ="color:green" hidden = "@(isSuccess == false)"> Post Created Successfully</p>
+    </li>
+</ol>
+
+@code {
+    private string title;
+    private string content;
+    private int userId;
+    private string errorMessage;
+    private bool isSuccess;
+
+    private async Task AddPost()
+    {
+        errorMessage = string.Empty;
+        isSuccess = false;
+
+        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))
+        {
+            errorMessage = "Title and Content cannot be empty";
+            return;
+        }
+
+        try
+        {
+            var newPost = new CreatePostDto
+            {
+                Title = title,
+                Content = content,
+                UserId = userId
+            };
+            await HttpPostService.AddAsync(newPost); 
+            
+            isSuccess = true;
+        }
+        catch (Exception e)
+        {
+            errorMessage = $"An error occured:{e.Message}";
+        }
+
+    }
+
+}

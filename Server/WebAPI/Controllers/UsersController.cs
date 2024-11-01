@@ -101,34 +101,19 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserDto>>> GetManyUsers([FromQuery] string?usernameContains, [FromQuery] int? userId)
+    public async Task<ActionResult<IEnumerable<UserDto>>> GetManyUsers()
     {
-        IQueryable<User> users = userRepo.GetMany();
-        if (!string.IsNullOrWhiteSpace(usernameContains))
-        {
-            users = users.Where(u => u.UserName.Contains(usernameContains));
-        }
-
-        if (userId.HasValue)
-        {
-            users = users.Where(u => u.UserId == userId.Value);
-        }
-
-        List<User> userList = users.ToList();
-        if (!userList.Any())
-        {
-            return NotFound("No  users found with the given information");
-        }
-        var userDtos = userList.Select(u => new UserDto
+        IEnumerable<User> users = userRepo.GetMany();
+        List<UserDto> dtos = users.Select(u => new UserDto
         {
             Id = u.UserId,
             UserName = u.UserName
         }).ToList();
-
-        return Ok(userDtos);
+        return Ok(dtos);
     }
     
-    private async Task VerifyUserNameIsAvailableAsync(string username)
+
+    private async Task VerifyUserNameIsAvailableAsync(string? username)
     {
         var existingUser = await userRepo.GetUserByUsernameAndPasswordAsync(username, null);
         if (existingUser != null)
