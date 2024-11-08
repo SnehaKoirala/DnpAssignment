@@ -1,0 +1,105 @@
+﻿@page "/User"
+@using ApiContracts
+@using BlazorApp.Services
+@inject HttpUserService HttpUserService
+@rendermode InteractiveServer
+<PageTitle>User</PageTitle>
+<h3>Add New User</h3>
+
+<div>
+    <label>Enter Username:</label>
+    <input @bind="_username" placeholder="Enter username"/> 
+    
+</div>
+
+<div style="margin-top: 10px; ">
+    <label>Enter Password :</label>
+    <input type="password" @bind="_password" placeholder="Enter password"/>
+</div>
+
+<div style="margin-top: 10px;">
+    <button class="btn btn-primary" @onclick="AddUser">Add User</button>
+</div>
+
+<p style="color: red">@_errorMessage</p>
+<p style="color: green" hidden="@(_isSuccess == false)"> User added successfully</p>
+
+<h3>Existing Users</h3>
+<ul>
+    @foreach (var user in users)
+    {
+        <li>
+            @user.UserName
+            <button class="btn btn-danger" @onclick="() => DeleteUser(user.Id)">Delete</button>
+        </li>
+    }
+</ul>
+
+@code {
+    private string? _username;
+    private string? _password;
+    private string? _errorMessage;
+    private bool _isSuccess;
+    private List<UserDto> users = new List<UserDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task AddUser()
+    {
+        _errorMessage = string.Empty;
+        _isSuccess = false;
+
+        if (string.IsNullOrWhiteSpace(_username) || string.IsNullOrWhiteSpace(_password))
+        {
+            _errorMessage = "Username and Password cannot be empty.";
+            return;
+        }
+
+        try
+        {
+            var newUser = new CreateUserDto
+            {
+                UserName = _username,
+                Password = _password
+            };
+            await HttpUserService.AddUserAsync(newUser);
+
+            _isSuccess = true;
+        }
+        catch (Exception e)
+        {
+            _errorMessage = $"An error occured: {e.Message}";
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            var userList = await HttpUserService.GetManyAsync();
+            users = userList.ToList();
+        }
+        catch (Exception e)
+        {
+            _errorMessage = $"An error occurred while loading users: {e.Message}";
+        }
+    }
+
+    private async Task DeleteUser(int userId)
+    {
+        _errorMessage = string.Empty;
+        try
+        {
+            await HttpUserService.DeleteUserAsync(userId);
+            await LoadUsers();
+        }
+        catch (Exception e)
+        {
+            _errorMessage = $"An error occurred while deleting the user: {e.Message}";
+        }
+    }
+
+}

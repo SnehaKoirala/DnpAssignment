@@ -1,0 +1,27 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"/>
+
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <base href="/"/>
+    <link rel="stylesheet" href="bootstrap/bootstrap.min.css"/>
+    <link rel="stylesheet" href="app.css"/>
+    <link rel="stylesheet" href="BlazorApp.styles.css"/>
+    <link rel="icon" type="image/png" href="favicon.png"/>
+
+    <!-- added this line in assignment -->
+    <HeadOutlet @rendermode="InteractiveServer"/>
+
+</head>
+
+<body>
+<!-- added this line in assignment -->
+<Routes @rendermode="InteractiveServer"/> 
+
+<script src="_framework/blazor.web.js"></script>
+</body>
+
+</html>

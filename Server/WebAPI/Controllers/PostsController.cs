@@ -1,6 +1,6 @@
-﻿using ApiContracts.Post;
+﻿using ApiContracts;
+using ApiContracts.Post;
 using Entities;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using RepositoryContracts;
 
@@ -95,26 +95,26 @@ public class PostsController : ControllerBase
     }
     
     // GET: /Posts/{id}
-    [HttpGet("{id}")]
-    public async Task<ActionResult<PostDto>> GetSinglePost([FromRoute] int id)
-    {
-        try
-        {
-            Post post = await postRepo.GetSingleAsync(id);
-            PostDto dto = new()
-            {
-                Id = post.PostId,
-                Title = post.Title,
-                Content = post.Body,
-                UserId = post.UserId
-            };
-            return Ok(dto);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return StatusCode(500, $"An error occurred: {e.Message}");
-        }
-    }
-    
-}
+       [HttpGet("{id}")]
+       public async Task<ActionResult<PostDto>> GetSinglePost([FromRoute] int id)
+       {
+           try
+           {
+               Post post = await postRepo.GetSingleAsync(id);
+               PostDto dto = new()
+               {
+                   Id = post.PostId,
+                   Title = post.Title,
+                   Content = post.Body,
+                   UserId = post.UserId
+               };
+               return Ok(dto);
+           }
+           catch (Exception e)
+           {
+               Console.WriteLine(e);
+               return StatusCode(500, $"An error occurred: {e.Message}");
+           }
+       }
+       
+   }

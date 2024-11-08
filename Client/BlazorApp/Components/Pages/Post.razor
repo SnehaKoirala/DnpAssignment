@@ -1,0 +1,146 @@
+﻿@page "/Post"
+@using ApiContracts.Comment
+@using ApiContracts.Post
+@using BlazorApp.Services
+@rendermode InteractiveServer
+@inject HttpPostService HttpPostService
+@inject HttpUserService HttpUserService  
+@inject HttpCommentService HttpCommentService
+
+<PageTitle>Posts</PageTitle>
+
+<!-- Creating a new post -->
+<h3>Create a new post</h3>
+<div>
+    <label>Enter Title:</label>
+    <input @bind="title" placeholder="Enter Title" />
+</div>
+
+<div style="margin-top: 10px;">
+    <label>Enter Content:</label>
+    <input @bind="content" placeholder="Enter Content" />
+</div>
+
+<div style="margin-top: 10px;">
+    <label>Enter User Id:</label>
+    <input @bind="userId" placeholder="Enter UserId" type="number" />
+</div>
+
+<div style="margin-top: 10px;">
+    <button class="btn btn-primary" @onclick="AddPost">Add Post</button>
+</div>
+
+<p style="color: red">@errorMessage</p>
+<p style="color: green" hidden="@(isSuccess == false)">Post Created Successfully</p>
+
+<!-- View all posts with title and UserId as clickable link -->
+<h3>List of Created Posts</h3>
+<ul>
+    @foreach (var post in posts)
+    {
+        <li>
+            <a href="javascript:void(0)" @onclick="() => ShowPostDetails(post.Id)">
+                <b>@post.Title</b> by User ID: @post.UserId
+            </a>
+        </li>
+    }
+</ul>
+
+<!-- Display selected post details -->
+@if (selectedPost != null)
+{
+    <div>
+        <h3>Post Details</h3>
+        <p><b>Title:</b> @selectedPost.Title</p>
+        <p><b>Content:</b> @selectedPost.Content</p> 
+        <p><b>Author User ID:</b> @selectedPost.UserId</p>
+        <p><b>Comments:</b></p>
+        <ul>
+            @foreach (var comment in comments)
+            {
+                <li>@comment.Content</li>
+            }
+            
+        </ul>
+    </div>
+}
+
+@code {
+    private string title;
+    private string content;
+    private int userId;
+    private string errorMessage;
+    private bool isSuccess;
+
+    // Properties for displaying posts
+    private List<PostDto> posts = new();
+
+    // Variables to hold selected post details
+    private PostDto? selectedPost;
+    private List<CommentDto> comments = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPosts();
+    }
+
+    private async Task AddPost()
+    {
+        errorMessage = string.Empty;
+        isSuccess = false;
+
+        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))
+        {
+            errorMessage = "Title and Content cannot be empty";
+            return;
+        }
+
+        try
+        {
+            var newPost = new CreatePostDto
+            {
+                Title = title,
+                Content = content,
+                UserId = userId
+            };
+            await HttpPostService.AddAsync(newPost);
+            isSuccess = true;
+
+            // Reload posts after adding a new one
+            await LoadPosts();
+        }
+        catch (Exception e)
+        {
+            errorMessage = $"An error occurred: {e.Message}";
+        }
+    }
+
+    private async Task LoadPosts()
+    {
+        try
+        {
+            posts = await HttpPostService.GetManyAsync();
+        }
+        catch (Exception e)
+        {
+            errorMessage = $"Error loading posts: {e.Message}";
+        }
+    }
+
+    private async Task ShowPostDetails(int postId)
+    {
+        try
+        {
+            selectedPost = posts.SingleOrDefault(p => p.Id == postId);
+            comments = new List<CommentDto>();
+            if (selectedPost != null)
+            {
+                comments = [await HttpCommentService.GetSingleAsync(selectedPost.Id)];
+            }
+        }
+        catch (Exception e)
+        {
+            errorMessage = $"Error loading post details: {e.Message}";
+        }
+    }
+}

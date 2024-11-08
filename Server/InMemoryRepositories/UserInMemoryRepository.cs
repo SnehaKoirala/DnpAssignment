@@ -68,7 +68,7 @@ public class UserInMemoryRepository : IUserRepository
         return users.AsQueryable();
     }
 
-    public Task<User?> GetUserByUsernameAndPasswordAsync(string username, string password)
+    public Task<User?> GetUserByUsernameAndPasswordAsync(string? username, string password)
     {
         User? user = users.SingleOrDefault(u => u.UserName == username && u.Password == password);
         return Task.FromResult(user);

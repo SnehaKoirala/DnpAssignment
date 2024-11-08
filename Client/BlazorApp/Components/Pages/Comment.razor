@@ -1,0 +1,72 @@
+﻿@page "/Comment"
+@using ApiContracts.Comment
+@using BlazorApp.Services
+@rendermode InteractiveServer 
+@inject HttpCommentService HttpCommentService
+
+<PageTitle>Comments</PageTitle>
+
+<!-- Adding a comment to a post--> 
+<h3>Add Comments to a post</h3>
+
+<div>
+    <label> Enter Comment:</label>
+    <input @bind="content" placeholder="Write your Comment here"/>
+</div>
+
+<div style="margin-top: 10px;">
+    <label>Enter Post Id:</label>
+    <input @bind="postId" type="number" />
+</div>       
+
+<div style="margin-top: 10px;">
+    <label>Enter User Id:</label>
+    <input @bind="userId" type="number" />
+</div>       
+ 
+<div style="margin-top: 10px;">
+    <button  class="btn btn-primary" @onclick="AddComment"> Add Comment</button>
+</div>
+<p style="color:red">@errorMessage</p>
+<p style="color: green"  hidden="@(isSuccess == false)"> Comment added Successfully!</p>
+
+
+@code {
+    private string content;
+    private int postId;
+    private int userId;
+    private string errorMessage;
+    private bool isSuccess;
+
+    private async Task AddComment()
+    {
+        errorMessage = string.Empty;
+        isSuccess = false;
+
+        if (string.IsNullOrWhiteSpace(content)|| postId <=0 || userId <=0 )
+        {
+            errorMessage = string.IsNullOrWhiteSpace(content)
+                ? "Content cannot be empty"
+                : postId <= 0
+                    ? "PostId must be a positive number"
+                    : "UserId must be a positive number";
+            return;
+        }
+
+        try
+        {
+            var newComment = new CreateCommentDto
+            {
+                Content = content,
+                PostId = postId,
+                UserId = userId
+            };
+            await HttpCommentService.AddCommentAsync(newComment);
+            isSuccess = true;
+        }
+        catch (Exception e)
+        {
+            errorMessage = $"An error occured:{e.Message}";
+        }
+    }
+}

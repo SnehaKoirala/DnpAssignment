@@ -88,7 +88,7 @@ namespace FileRepositories;
             return users.AsQueryable();
         }
         
-        public async Task<User?> GetUserByUsernameAndPasswordAsync(string username, string password)
+        public async Task<User?> GetUserByUsernameAndPasswordAsync(string? username, string password)
         {
             string userAsJson = await File.ReadAllTextAsync(filePath);
             List<User> users = JsonSerializer.Deserialize<List<User>>(userAsJson)!;
