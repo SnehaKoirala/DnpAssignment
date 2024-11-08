@@ -108,7 +108,7 @@ public class CommentsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CommentDto>>> GetAllComments()
     {
-        IEnumerable<Comment> comments = commentRepo.GetMany();
+        IEnumerable<Comment> comments =  commentRepo.GetMany();
         List<CommentDto> dtos = comments.Select(c => new CommentDto
         {
             Id = c.CommentId,
