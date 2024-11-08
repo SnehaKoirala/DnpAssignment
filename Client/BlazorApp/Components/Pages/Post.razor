@@ -10,7 +10,7 @@
 <PageTitle>Posts</PageTitle>
 
 <!-- Creating a new post -->
-<h3>Create a new post</h3>
+<h3>Create a New Post</h3>
 <div>
     <label>Enter Title:</label>
     <input @bind="title" placeholder="Enter Title" />
@@ -22,8 +22,8 @@
 </div>
 
 <div style="margin-top: 10px;">
-    <label>Enter User Id:</label>
-    <input @bind="userId" placeholder="Enter UserId" type="number" />
+    <label>Enter User ID:</label>
+    <input @bind="userId" type="number" placeholder="Enter User ID" />
 </div>
 
 <div style="margin-top: 10px;">
@@ -33,15 +33,24 @@
 <p style="color: red">@errorMessage</p>
 <p style="color: green" hidden="@(isSuccess == false)">Post Created Successfully</p>
 
-<!-- View all posts with title and UserId as clickable link -->
+<!-- User ID Filter Section -->
+<h3>Filter Posts by User ID</h3>
+<div>
+    <label>Enter User ID:</label>
+    <input @bind="filterUserId" type="number" />
+    <button class="btn btn-secondary" @onclick="FilterPosts">Filter</button>
+    <button class="btn btn-secondary" @onclick="ClearFilter">Clear</button>
+</div>
+
+<!-- View all posts with title, Post ID, and Author Name as clickable links -->
 <h3>List of Created Posts</h3>
 <ul>
-    @foreach (var post in posts)
+    @foreach (var post in filteredPosts)
     {
         <li>
-            <a href="javascript:void(0)" @onclick="() => ShowPostDetails(post.Id)">
-                <b>@post.Title</b> by User ID: @post.UserId
-            </a>
+            <b>Post ID:</b> @post.Id, <b>Title:</b> <a href="javascript:void(0)" @onclick="() => ShowPostDetails(post.Id)">@post.Title</a>, <b>Author:</b> @GetAuthorName(post.UserId)
+            <button class="btn btn-warning btn-sm" @onclick="() => EditPost(post)">Edit</button>
+            <button class="btn btn-danger btn-sm" @onclick="() => DeletePost(post.Id)">Delete</button>
         </li>
     }
 </ul>
@@ -52,16 +61,69 @@
     <div>
         <h3>Post Details</h3>
         <p><b>Title:</b> @selectedPost.Title</p>
-        <p><b>Content:</b> @selectedPost.Content</p> 
-        <p><b>Author User ID:</b> @selectedPost.UserId</p>
+        <p><b>Content:</b> @selectedPost.Content</p>
+        <p><b>Author:</b> @GetAuthorName(selectedPost.UserId)</p>
         <p><b>Comments:</b></p>
         <ul>
             @foreach (var comment in comments)
             {
-                <li>@comment.Content</li>
+                <li>
+                    <b>Commenter:</b> @GetCommenterName(comment.UserId) <br />
+                    <b>Content:</b> @comment.Content
+                </li>
             }
-            
         </ul>
+    </div>
+}
+
+@code {
+    // New cache to store commenter names
+    private Dictionary<int, string> commenterNamesCache = new();
+
+   
+
+    private async Task<string> GetCommenterName(int userId)
+    {
+        if (commenterNamesCache.ContainsKey(userId))
+        {
+            return commenterNamesCache[userId];
+        }
+
+        try
+        {
+            var user = await HttpUserService.GetSingleAsync(userId);
+            var commenterName = user?.UserName ?? "Unknown";
+            commenterNamesCache[userId] = commenterName; // Cache the result
+            return commenterName;
+        }
+        catch
+        {
+            return "Unknown";
+        }
+    }
+}
+
+}
+
+<!-- Edit Post Section -->
+@if (isEditing)
+{
+    <div>
+        <h3>Edit Post</h3>
+        <div>
+            <label>Edit Title:</label>
+            <input @bind="editTitle" placeholder="Edit your post title" />
+        </div>
+
+        <div style="margin-top: 10px;">
+            <label>Edit Content:</label>
+            <input @bind="editContent" placeholder="Edit your post content" />
+        </div>
+
+        <div style="margin-top: 10px;">
+            <button class="btn btn-success" @onclick="UpdatePost">Save Changes</button>
+            <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+        </div>
     </div>
 }
 
@@ -74,10 +136,23 @@
 
     // Properties for displaying posts
     private List<PostDto> posts = new();
+    private List<PostDto> filteredPosts = new();
 
     // Variables to hold selected post details
     private PostDto? selectedPost;
     private List<CommentDto> comments = new();
+
+    // Edit post properties
+    private bool isEditing;
+    private int editPostId;
+    private string editTitle;
+    private string editContent;
+
+    // User ID filter
+    private int filterUserId;
+
+    // Cache for storing user names to avoid repeated API calls
+    private Dictionary<int, string> userNamesCache = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -120,11 +195,103 @@
         try
         {
             posts = await HttpPostService.GetManyAsync();
+            filteredPosts = new List<PostDto>(posts); // Load all posts initially
         }
         catch (Exception e)
         {
             errorMessage = $"Error loading posts: {e.Message}";
         }
+    }
+
+    private async Task<string> GetAuthorName(int userId)
+    {
+        if (userNamesCache.ContainsKey(userId))
+        {
+            return userNamesCache[userId];
+        }
+
+        try
+        {
+            var user = await HttpUserService.GetSingleAsync(userId);
+            var authorName = user?.UserName ?? "Unknown";
+            userNamesCache[userId] = authorName; // Cache the result
+            return authorName;
+        }
+        catch
+        {
+            return "Unknown";
+        }
+    }
+
+    private void EditPost(PostDto post)
+    {
+        isEditing = true;
+        editPostId = post.Id;
+        editTitle = post.Title;
+        editContent = post.Content;
+    }
+
+    private async Task UpdatePost()
+    {
+        try
+        {
+            var updatedPost = new UpdatePostDto
+            {
+                PostId = editPostId,
+                Title = editTitle,
+                Content = editContent,
+                UserId = userId
+            };
+
+            await HttpPostService.UpdateAsync(editPostId, updatedPost);
+
+            // Refresh posts list
+            await LoadPosts();
+            CancelEdit();
+        }
+        catch (Exception e)
+        {
+            errorMessage = $"Error updating post: {e.Message}";
+        }
+    }
+
+    private void CancelEdit()
+    {
+        isEditing = false;
+        editPostId = 0;
+        editTitle = string.Empty;
+        editContent = string.Empty;
+    }
+
+    private async Task DeletePost(int postId)
+    {
+        try
+        {
+            await HttpPostService.DeleteAsync(postId);
+            await LoadPosts();
+        }
+        catch (Exception e)
+        {
+            errorMessage = $"Error deleting post: {e.Message}";
+        }
+    }
+
+    private void FilterPosts()
+    {
+        if (filterUserId > 0)
+        {
+            filteredPosts = posts.Where(p => p.UserId == filterUserId).ToList();
+        }
+        else
+        {
+            filteredPosts = new List<PostDto>(posts);
+        }
+    }
+
+    private void ClearFilter()
+    {
+        filterUserId = 0;
+        filteredPosts = new List<PostDto>(posts);
     }
 
     private async Task ShowPostDetails(int postId)
