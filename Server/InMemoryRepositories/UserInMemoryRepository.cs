@@ -13,6 +13,8 @@ public class UserInMemoryRepository : IUserRepository
         _ = AddUserAsync(new User("mivi", "4321")).Result;
         _ = AddUserAsync(new User("jknr", "1243")).Result;
         _ = AddUserAsync(new User("kasr", "2143")).Result;
+        _ = AddUserAsync(new User("Sneha", "12345")).Result;
+
     }
 
     public Task<User> AddUserAsync(User user)
