@@ -21,7 +21,7 @@ builder.Services.AddScoped(services => new HttpClient
 builder.Services.AddScoped<HttpUserService>();
 builder.Services.AddScoped<HttpPostService>();
 builder.Services.AddScoped<HttpCommentService>();
-//builder.Services.AddScoped<AuthenticationStateProvider, SimpleAuthProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider, SimpleAuthProvider>();
 
 
 
