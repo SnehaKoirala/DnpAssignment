@@ -4,7 +4,7 @@
 @using BlazorApp.Services
 @rendermode InteractiveServer
 @inject HttpPostService HttpPostService
-@inject HttpUserService HttpUserService  
+@inject HttpUserService HttpUserService
 @inject HttpCommentService HttpCommentService
 
 <PageTitle>Posts</PageTitle>
@@ -42,272 +42,217 @@
     <button class="btn btn-secondary" @onclick="ClearFilter">Clear</button>
 </div>
 
-<!-- View all posts with title, Post ID, and Author Name as clickable links -->
+<!-- View all posts with title, Post ID, and User ID as clickable links -->
 <h3>List of Created Posts</h3>
 <ul>
     @foreach (var post in filteredPosts)
     {
-        <li>
-            <b>Post ID:</b> @post.Id, <b>Title:</b> <a href="javascript:void(0)" @onclick="() => ShowPostDetails(post.Id)">@post.Title</a>, <b>Author:</b> @GetAuthorName(post.UserId)
-            <button class="btn btn-warning btn-sm" @onclick="() => EditPost(post)">Edit</button>
-            <button class="btn btn-danger btn-sm" @onclick="() => DeletePost(post.Id)">Delete</button>
-        </li>
+    <li>
+        <b>Post ID:</b> @post.Id, <b>Title:</b> <a href="javascript:void(0)" @onclick="() => ShowPostDetails(post.Id)">@post.Title</a>, <b>User ID:</b> @post.UserId
+        <button class="btn btn-warning btn-sm" @onclick="() => EditPost(post)">Edit</button>
+        <button class="btn btn-danger btn-sm" @onclick="() => DeletePost(post.Id)">Delete</button>
+    </li>
     }
 </ul>
 
 <!-- Display selected post details -->
 @if (selectedPost != null)
 {
-    <div>
-        <h3>Post Details</h3>
-        <p><b>Title:</b> @selectedPost.Title</p>
-        <p><b>Content:</b> @selectedPost.Content</p>
-        <p><b>Author:</b> @GetAuthorName(selectedPost.UserId)</p>
-        <p><b>Comments:</b></p>
-        <ul>
-            @foreach (var comment in comments)
-            {
-                <li>
-                    <b>Commenter:</b> @GetCommenterName(comment.UserId) <br />
-                    <b>Content:</b> @comment.Content
-                </li>
-            }
-        </ul>
-    </div>
-}
-
-@code {
-    // New cache to store commenter names
-    private Dictionary<int, string> commenterNamesCache = new();
-
-   
-
-    private async Task<string> GetCommenterName(int userId)
-    {
-        if (commenterNamesCache.ContainsKey(userId))
+<div>
+    <h3>Post Details</h3>
+    <p><b>Title:</b> @selectedPost.Title</p>
+    <p><b>Content:</b> @selectedPost.Content</p>
+    <p><b>Author User ID:</b> @selectedPost.UserId</p>
+    <p><b>Comments:</b></p>
+    <ul>
+        @foreach (var comment in comments)
         {
-            return commenterNamesCache[userId];
+        <li>@comment.Content</li>
         }
-
-        try
-        {
-            var user = await HttpUserService.GetSingleAsync(userId);
-            var commenterName = user?.UserName ?? "Unknown";
-            commenterNamesCache[userId] = commenterName; // Cache the result
-            return commenterName;
-        }
-        catch
-        {
-            return "Unknown";
-        }
-    }
-}
-
+    </ul>
+</div>
 }
 
 <!-- Edit Post Section -->
 @if (isEditing)
 {
+<div>
+    <h3>Edit Post</h3>
     <div>
-        <h3>Edit Post</h3>
-        <div>
-            <label>Edit Title:</label>
-            <input @bind="editTitle" placeholder="Edit your post title" />
-        </div>
-
-        <div style="margin-top: 10px;">
-            <label>Edit Content:</label>
-            <input @bind="editContent" placeholder="Edit your post content" />
-        </div>
-
-        <div style="margin-top: 10px;">
-            <button class="btn btn-success" @onclick="UpdatePost">Save Changes</button>
-            <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
-        </div>
+        <label>Edit Title:</label>
+        <input @bind="editTitle" placeholder="Edit your post title" />
     </div>
+
+    <div style="margin-top: 10px;">
+        <label>Edit Content:</label>
+        <input @bind="editContent" placeholder="Edit your post content" />
+    </div>
+
+    <div style="margin-top: 10px;">
+        <button class="btn btn-success" @onclick="UpdatePost">Save Changes</button>
+        <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+    </div>
+</div>
 }
 
 @code {
-    private string title;
-    private string content;
-    private int userId;
-    private string errorMessage;
-    private bool isSuccess;
+private string title;
+private string content;
+private int userId;
+private string errorMessage;
+private bool isSuccess;
 
-    // Properties for displaying posts
-    private List<PostDto> posts = new();
-    private List<PostDto> filteredPosts = new();
+// Properties for displaying posts
+private List<PostDto> posts = new();
+private List<PostDto> filteredPosts = new();
 
-    // Variables to hold selected post details
-    private PostDto? selectedPost;
-    private List<CommentDto> comments = new();
+// Variables to hold selected post details
+private PostDto? selectedPost;
+private List<CommentDto> comments = new();
 
-    // Edit post properties
-    private bool isEditing;
-    private int editPostId;
-    private string editTitle;
-    private string editContent;
+// Edit post properties
+private bool isEditing;
+private int editPostId;
+private string editTitle;
+private string editContent;
 
-    // User ID filter
-    private int filterUserId;
+// User ID filter
+private int filterUserId;
 
-    // Cache for storing user names to avoid repeated API calls
-    private Dictionary<int, string> userNamesCache = new();
+protected override async Task OnInitializedAsync()
+{
+await LoadPosts();
+}
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadPosts();
-    }
+private async Task AddPost()
+{
+errorMessage = string.Empty;
+isSuccess = false;
 
-    private async Task AddPost()
-    {
-        errorMessage = string.Empty;
-        isSuccess = false;
+if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))
+{
+errorMessage = "Title and Content cannot be empty";
+return;
+}
 
-        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))
-        {
-            errorMessage = "Title and Content cannot be empty";
-            return;
-        }
+try
+{
+var newPost = new CreatePostDto
+{
+Title = title,
+Content = content,
+UserId = userId
+};
+await HttpPostService.AddAsync(newPost);
+isSuccess = true;
 
-        try
-        {
-            var newPost = new CreatePostDto
-            {
-                Title = title,
-                Content = content,
-                UserId = userId
-            };
-            await HttpPostService.AddAsync(newPost);
-            isSuccess = true;
+// Reload posts after adding a new one
+await LoadPosts();
+}
+catch (Exception e)
+{
+errorMessage = $"An error occurred: {e.Message}";
+}
+}
 
-            // Reload posts after adding a new one
-            await LoadPosts();
-        }
-        catch (Exception e)
-        {
-            errorMessage = $"An error occurred: {e.Message}";
-        }
-    }
+private async Task LoadPosts()
+{
+try
+{
+posts = await HttpPostService.GetManyAsync();
+filteredPosts = new List<PostDto>(posts); // Load all posts initially
+}
+catch (Exception e)
+{
+errorMessage = $"Error loading posts: {e.Message}";
+}
+}
 
-    private async Task LoadPosts()
-    {
-        try
-        {
-            posts = await HttpPostService.GetManyAsync();
-            filteredPosts = new List<PostDto>(posts); // Load all posts initially
-        }
-        catch (Exception e)
-        {
-            errorMessage = $"Error loading posts: {e.Message}";
-        }
-    }
+private void EditPost(PostDto post)
+{
+isEditing = true;
+editPostId = post.Id;
+editTitle = post.Title;
+editContent = post.Content;
+}
 
-    private async Task<string> GetAuthorName(int userId)
-    {
-        if (userNamesCache.ContainsKey(userId))
-        {
-            return userNamesCache[userId];
-        }
+private async Task UpdatePost()
+{
+try
+{
+var updatedPost = new UpdatePostDto
+{
+    PostId = editPostId,
+    Title = editTitle,
+    Content = editContent,
+    UserId = userId
+};
 
-        try
-        {
-            var user = await HttpUserService.GetSingleAsync(userId);
-            var authorName = user?.UserName ?? "Unknown";
-            userNamesCache[userId] = authorName; // Cache the result
-            return authorName;
-        }
-        catch
-        {
-            return "Unknown";
-        }
-    }
+await HttpPostService.UpdateAsync(editPostId, updatedPost);
 
-    private void EditPost(PostDto post)
-    {
-        isEditing = true;
-        editPostId = post.Id;
-        editTitle = post.Title;
-        editContent = post.Content;
-    }
+// Refresh posts list
+await LoadPosts();
+CancelEdit();
+}
+catch (Exception e)
+{
+errorMessage = $"Error updating post: {e.Message}";
+}
+}
 
-    private async Task UpdatePost()
-    {
-        try
-        {
-            var updatedPost = new UpdatePostDto
-            {
-                PostId = editPostId,
-                Title = editTitle,
-                Content = editContent,
-                UserId = userId
-            };
+private void CancelEdit()
+{
+isEditing = false;
+editPostId = 0;
+editTitle = string.Empty;
+editContent = string.Empty;
+}
 
-            await HttpPostService.UpdateAsync(editPostId, updatedPost);
+private async Task DeletePost(int postId)
+{
+try
+{
+await HttpPostService.DeleteAsync(postId);
+await LoadPosts();
+}
+catch (Exception e)
+{
+errorMessage = $"Error deleting post: {e.Message}";
+}
+}
 
-            // Refresh posts list
-            await LoadPosts();
-            CancelEdit();
-        }
-        catch (Exception e)
-        {
-            errorMessage = $"Error updating post: {e.Message}";
-        }
-    }
+private void FilterPosts()
+{
+if (filterUserId > 0)
+{
+filteredPosts = posts.Where(p => p.UserId == filterUserId).ToList();
+}
+else
+{
+filteredPosts = new List<PostDto>(posts);
+}
+}
 
-    private void CancelEdit()
-    {
-        isEditing = false;
-        editPostId = 0;
-        editTitle = string.Empty;
-        editContent = string.Empty;
-    }
+private void ClearFilter()
+{
+filterUserId = 0;
+filteredPosts = new List<PostDto>(posts);
+}
 
-    private async Task DeletePost(int postId)
-    {
-        try
-        {
-            await HttpPostService.DeleteAsync(postId);
-            await LoadPosts();
-        }
-        catch (Exception e)
-        {
-            errorMessage = $"Error deleting post: {e.Message}";
-        }
-    }
-
-    private void FilterPosts()
-    {
-        if (filterUserId > 0)
-        {
-            filteredPosts = posts.Where(p => p.UserId == filterUserId).ToList();
-        }
-        else
-        {
-            filteredPosts = new List<PostDto>(posts);
-        }
-    }
-
-    private void ClearFilter()
-    {
-        filterUserId = 0;
-        filteredPosts = new List<PostDto>(posts);
-    }
-
-    private async Task ShowPostDetails(int postId)
-    {
-        try
-        {
-            selectedPost = posts.SingleOrDefault(p => p.Id == postId);
-            comments = new List<CommentDto>();
-            if (selectedPost != null)
-            {
-                comments = [await HttpCommentService.GetSingleAsync(selectedPost.Id)];
-            }
-        }
-        catch (Exception e)
-        {
-            errorMessage = $"Error loading post details: {e.Message}";
-        }
-    }
+private async Task ShowPostDetails(int postId)
+{
+try
+{
+selectedPost = posts.SingleOrDefault(p => p.Id == postId);
+comments = new List<CommentDto>();
+if (selectedPost != null)
+{
+comments = [await HttpCommentService.GetSingleAsync(selectedPost.Id)];
+}
+}
+catch (Exception e)
+{
+errorMessage = $"Error loading post details: {e.Message}";
+}
+}
 }
