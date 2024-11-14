@@ -1,35 +1,70 @@
 ﻿@page "/Comment"
+@attribute [Authorize]
+@using System.Security.Claims
 @using ApiContracts.Comment
 @using BlazorApp.Services
 @rendermode InteractiveServer 
 @inject HttpCommentService HttpCommentService
+@inject HttpPostService HttpPostService
+@inject HttpUserService HttpUserService
 
 <PageTitle>Comments</PageTitle>
 
 <!-- Adding a comment to a post--> 
-<h3>Add Comments to a post</h3>
-
+<h3>Add a Comment to a Post</h3>
 <div>
-    <label> Enter Comment:</label>
-    <input @bind="content" placeholder="Write your Comment here"/>
+    <label>Enter Comment:</label>
+    <input @bind="content" placeholder="Write your comment here" />
 </div>
 
 <div style="margin-top: 10px;">
-    <label>Enter Post Id:</label>
+    <label>Enter Post ID:</label>
     <input @bind="postId" type="number" />
 </div>       
 
 <div style="margin-top: 10px;">
-    <label>Enter User Id:</label>
+    <label>Enter User ID:</label>
     <input @bind="userId" type="number" />
 </div>       
- 
+
 <div style="margin-top: 10px;">
-    <button  class="btn btn-primary" @onclick="AddComment"> Add Comment</button>
+    <button class="btn btn-primary" @onclick="AddComment">Add Comment</button>
 </div>
 <p style="color:red">@errorMessage</p>
-<p style="color: green"  hidden="@(isSuccess == false)"> Comment added Successfully!</p>
+<p style="color:green" hidden="@(isSuccess == false)">Comment added successfully!</p>
 
+<!-- View Comments with Post and User Information -->
+<h3>List of Comments</h3>
+<ul>
+    @foreach (var comment in comments)
+    {
+        <li>
+            <b>Post ID:</b> @comment.PostId, 
+            <b>Post Author:</b> @GetAuthorName(comment.PostId) <br />
+            <b>Comment ID:</b> @comment.Id, 
+            <b>Content:</b> @comment.Content, 
+            <b>Commenter:</b> @GetUserName(comment.UserId) 
+            <button class="btn btn-warning btn-sm" @onclick="() => EditComment(comment)">Edit</button>
+            <button class="btn btn-danger btn-sm" @onclick="() => DeleteComment(comment.Id)">Delete</button>
+        </li>
+    }
+</ul>
+
+<!-- Edit Comment Section -->
+@if (isEditing)
+{
+    <div>
+        <h3>Edit Comment</h3>
+        <div>
+            <label>Edit Content:</label>
+            <input @bind="editContent" placeholder="Edit your comment" />
+        </div>
+        <div style="margin-top: 10px;">
+            <button class="btn btn-success" @onclick="UpdateComment">Save Changes</button>
+            <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+        </div>
+    </div>
+}
 
 @code {
     private string content;
@@ -37,19 +72,48 @@
     private int userId;
     private string errorMessage;
     private bool isSuccess;
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; }
+
+    // Properties for displaying and managing comments
+    private List<CommentDto> comments = new();
+    private bool isEditing;
+    private int editCommentId;
+    private string editContent;
+
+    // Cache for storing user and author names
+    private Dictionary<int, string> userNamesCache = new();
+    private Dictionary<int, string> postAuthorsCache = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadComments();
+        AuthenticationState authenticationState = await State; 
+        ClaimsPrincipal claimsPrincipal = authenticationState.User; 
+        if(claimsPrincipal.Identity is null || !claimsPrincipal.Identity.IsAuthenticated) 
+        { 
+            // the user is not logged in
+            return; 
+        } 
+        string? userName = claimsPrincipal.Identity?.Name; 
+        IEnumerable<Claim> claims = claimsPrincipal.Claims; 
+        string userIdAsString = claims.Single(c => c.Type == "Id").Value; 
+        userId = int.Parse(userIdAsString);
+    }
+    
+    
 
     private async Task AddComment()
     {
         errorMessage = string.Empty;
         isSuccess = false;
 
-        if (string.IsNullOrWhiteSpace(content)|| postId <=0 || userId <=0 )
+        if (string.IsNullOrWhiteSpace(content) || postId <= 0 || userId <= 0)
         {
             errorMessage = string.IsNullOrWhiteSpace(content)
                 ? "Content cannot be empty"
                 : postId <= 0
-                    ? "PostId must be a positive number"
-                    : "UserId must be a positive number";
+                    ? "Post ID must be a positive number"
+                    : "User ID must be a positive number";
             return;
         }
 
@@ -63,10 +127,114 @@
             };
             await HttpCommentService.AddCommentAsync(newComment);
             isSuccess = true;
+
+            // Reload comments after adding a new one
+            await LoadComments();
         }
         catch (Exception e)
         {
-            errorMessage = $"An error occured:{e.Message}";
+            errorMessage = $"An error occurred: {e.Message}";
+        }
+    }
+
+    private async Task LoadComments()
+    {
+        try
+        {
+            comments = await HttpCommentService.GetManyAsync();
+        }
+        catch (Exception e)
+        {
+            errorMessage = $"Error loading comments: {e.Message}";
+        }
+    }
+
+    private async Task<string> GetUserName(int userId)
+    {
+        if (userNamesCache.ContainsKey(userId))
+        {
+            return userNamesCache[userId];
+        }
+
+        try
+        {
+            var user = await HttpUserService.GetSingleAsync(userId);
+            var userName = user?.UserName ?? "Unknown";
+            userNamesCache[userId] = userName;
+            return userName;
+        }
+        catch
+        {
+            return "Unknown";
+        }
+    }
+
+    private async Task<string> GetAuthorName(int postId)
+    {
+        if (postAuthorsCache.ContainsKey(postId))
+        {
+            return postAuthorsCache[postId];
+        }
+
+        try
+        {
+            var post = await HttpPostService.GetSingleAsync(postId);
+            var authorName = await GetUserName(post.UserId);
+            postAuthorsCache[postId] = authorName;
+            return authorName;
+        }
+        catch
+        {
+            return "Unknown";
+        }
+    }
+
+    private void EditComment(CommentDto comment)
+    {
+        isEditing = true;
+        editCommentId = comment.Id;
+        editContent = comment.Content;
+    }
+
+    private async Task UpdateComment()
+    {
+        try
+        {
+            var updatedComment = new UpdateCommentDto
+            {
+                Id = editCommentId,
+                Content = editContent
+            };
+
+            await HttpCommentService.UpdateCommentAsync(editCommentId, updatedComment);
+
+            // Refresh comments list
+            await LoadComments();
+            CancelEdit();
+        }
+        catch (Exception e)
+        {
+            errorMessage = $"Error updating comment: {e.Message}";
+        }
+    }
+
+    private void CancelEdit()
+    {
+        isEditing = false;
+        editCommentId = 0;
+        editContent = string.Empty;
+    }
+
+    private async Task DeleteComment(int commentId)
+    {
+        try
+        {
+            await HttpCommentService.DeleteCommentAsync(commentId);
+            await LoadComments();
+        }
+        catch (Exception e)
+        {
+            errorMessage = $"Error deleting comment: {e.Message}";
         }
     }
 }

@@ -106,7 +106,7 @@ public class CommentsController : ControllerBase
     
     // GET: /Comments
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CommentDto>>> GetAllComments()
+    public Task<ActionResult<IEnumerable<CommentDto>>> GetAllComments()
     {
         IEnumerable<Comment> comments =  commentRepo.GetMany();
         List<CommentDto> dtos = comments.Select(c => new CommentDto
@@ -116,7 +116,7 @@ public class CommentsController : ControllerBase
             PostId = c.PostId,
             UserId = c.UserId
         }).ToList();
-        return Ok(dtos);
+        return Task.FromResult<ActionResult<IEnumerable<CommentDto>>>(Ok(dtos));
     }
     
 

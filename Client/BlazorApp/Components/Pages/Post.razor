@@ -1,16 +1,18 @@
 ﻿@page "/Post"
+@attribute [Authorize]
+@using System.Security.Claims
 @using ApiContracts.Comment
 @using ApiContracts.Post
 @using BlazorApp.Services
 @rendermode InteractiveServer
 @inject HttpPostService HttpPostService
-@inject HttpUserService HttpUserService  
+@inject HttpUserService HttpUserService
 @inject HttpCommentService HttpCommentService
 
 <PageTitle>Posts</PageTitle>
 
 <!-- Creating a new post -->
-<h3>Create a new post</h3>
+<h3>Create a New Post</h3>
 <div>
     <label>Enter Title:</label>
     <input @bind="title" placeholder="Enter Title" />
@@ -22,8 +24,8 @@
 </div>
 
 <div style="margin-top: 10px;">
-    <label>Enter User Id:</label>
-    <input @bind="userId" placeholder="Enter UserId" type="number" />
+    <label>Enter User ID:</label>
+    <input @bind="userId" type="number" placeholder="Enter User ID" />
 </div>
 
 <div style="margin-top: 10px;">
@@ -33,114 +35,239 @@
 <p style="color: red">@errorMessage</p>
 <p style="color: green" hidden="@(isSuccess == false)">Post Created Successfully</p>
 
-<!-- View all posts with title and UserId as clickable link -->
+<!-- User ID Filter Section -->
+<h3>Filter Posts by User ID</h3>
+<div>
+    <label>Enter User ID:</label>
+    <input @bind="filterUserId" type="number" />
+    <button class="btn btn-secondary" @onclick="FilterPosts">Filter</button>
+    <button class="btn btn-secondary" @onclick="ClearFilter">Clear</button>
+</div>
+
+<!-- View all posts with title, Post ID, and User ID as clickable links -->
 <h3>List of Created Posts</h3>
 <ul>
-    @foreach (var post in posts)
+    @foreach (var post in filteredPosts)
     {
-        <li>
-            <a href="javascript:void(0)" @onclick="() => ShowPostDetails(post.Id)">
-                <b>@post.Title</b> by User ID: @post.UserId
-            </a>
-        </li>
+    <li>
+        <b>Post ID:</b> @post.Id, <b>Title:</b> <a href="javascript:void(0)" @onclick="() => ShowPostDetails(post.Id)">@post.Title</a>, <b>User ID:</b> @post.UserId
+        <button class="btn btn-warning btn-sm" @onclick="() => EditPost(post)">Edit</button>
+        <button class="btn btn-danger btn-sm" @onclick="() => DeletePost(post.Id)">Delete</button>
+    </li>
     }
 </ul>
 
 <!-- Display selected post details -->
 @if (selectedPost != null)
 {
+<div>
+    <h3>Post Details</h3>
+    <p><b>Title:</b> @selectedPost.Title</p>
+    <p><b>Content:</b> @selectedPost.Content</p>
+    <p><b>Author User ID:</b> @selectedPost.UserId</p>
+    <p><b>Comments:</b></p>
+    <ul>
+        @foreach (var comment in comments)
+        {
+        <li>@comment.Content</li>
+        }
+    </ul>
+</div>
+}
+
+<!-- Edit Post Section -->
+@if (isEditing)
+{
+<div>
+    <h3>Edit Post</h3>
     <div>
-        <h3>Post Details</h3>
-        <p><b>Title:</b> @selectedPost.Title</p>
-        <p><b>Content:</b> @selectedPost.Content</p> 
-        <p><b>Author User ID:</b> @selectedPost.UserId</p>
-        <p><b>Comments:</b></p>
-        <ul>
-            @foreach (var comment in comments)
-            {
-                <li>@comment.Content</li>
-            }
-            
-        </ul>
+        <label>Edit Title:</label>
+        <input @bind="editTitle" placeholder="Edit your post title" />
     </div>
+
+    <div style="margin-top: 10px;">
+        <label>Edit Content:</label>
+        <input @bind="editContent" placeholder="Edit your post content" />
+    </div>
+
+    <div style="margin-top: 10px;">
+        <button class="btn btn-success" @onclick="UpdatePost">Save Changes</button>
+        <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+    </div>
+</div>
 }
 
 @code {
-    private string title;
-    private string content;
-    private int userId;
-    private string errorMessage;
-    private bool isSuccess;
+private string title;
+private string content;
+private int userId;
+private string errorMessage;
+private bool isSuccess;
+[CascadingParameter] public Task<AuthenticationState> State { get; set; }
 
-    // Properties for displaying posts
-    private List<PostDto> posts = new();
+// Properties for displaying posts
+private List<PostDto> posts = new();
+private List<PostDto> filteredPosts = new();
 
-    // Variables to hold selected post details
-    private PostDto? selectedPost;
-    private List<CommentDto> comments = new();
+// Variables to hold selected post details
+private PostDto? selectedPost;
+private List<CommentDto> comments = new();
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadPosts();
-    }
+// Edit post properties
+private bool isEditing;
+private int editPostId;
+private string editTitle;
+private string editContent;
 
-    private async Task AddPost()
-    {
-        errorMessage = string.Empty;
-        isSuccess = false;
+// User ID filter
+private int filterUserId;
 
-        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))
-        {
-            errorMessage = "Title and Content cannot be empty";
-            return;
-        }
+protected override async Task OnInitializedAsync()
+{
+await LoadPosts();
 
-        try
-        {
-            var newPost = new CreatePostDto
-            {
-                Title = title,
-                Content = content,
-                UserId = userId
-            };
-            await HttpPostService.AddAsync(newPost);
-            isSuccess = true;
+AuthenticationState authenticationState = await State; 
+ClaimsPrincipal claimsPrincipal = authenticationState.User; 
+if(claimsPrincipal.Identity is null || !claimsPrincipal.Identity.IsAuthenticated) 
+{ 
+    // the user is not logged in
+    return; 
+} 
+string? userName = claimsPrincipal.Identity?.Name; 
+IEnumerable<Claim> claims = claimsPrincipal.Claims; 
+string userIdAsString = claims.Single(c => c.Type == "Id").Value; 
+userId = int.Parse(userIdAsString);
+}
 
-            // Reload posts after adding a new one
-            await LoadPosts();
-        }
-        catch (Exception e)
-        {
-            errorMessage = $"An error occurred: {e.Message}";
-        }
-    }
+private async Task AddPost()
+{
+errorMessage = string.Empty;
+isSuccess = false;
 
-    private async Task LoadPosts()
-    {
-        try
-        {
-            posts = await HttpPostService.GetManyAsync();
-        }
-        catch (Exception e)
-        {
-            errorMessage = $"Error loading posts: {e.Message}";
-        }
-    }
+if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(content))
+{
+errorMessage = "Title and Content cannot be empty";
+return;
+}
 
-    private async Task ShowPostDetails(int postId)
-    {
-        try
-        {
-            selectedPost = posts.SingleOrDefault(p => p.Id == postId);
-            comments = new List<CommentDto>();
-            if (selectedPost != null)
-            {
-                comments = [await HttpCommentService.GetSingleAsync(selectedPost.Id)];
-            }
-        }
-        catch (Exception e)
-        {
-            errorMessage = $"Error loading post details: {e.Message}";
-        }
-    }
+try
+{
+var newPost = new CreatePostDto
+{
+Title = title,
+Content = content,
+UserId = userId
+};
+await HttpPostService.AddAsync(newPost);
+isSuccess = true;
+
+// Reload posts after adding a new one
+await LoadPosts();
+}
+catch (Exception e)
+{
+errorMessage = $"An error occurred: {e.Message}";
+}
+}
+
+private async Task LoadPosts()
+{
+try
+{
+posts = await HttpPostService.GetManyAsync();
+filteredPosts = new List<PostDto>(posts); // Load all posts initially
+}
+catch (Exception e)
+{
+errorMessage = $"Error loading posts: {e.Message}";
+}
+}
+
+private void EditPost(PostDto post)
+{
+isEditing = true;
+editPostId = post.Id;
+editTitle = post.Title;
+editContent = post.Content;
+}
+
+private async Task UpdatePost()
+{
+try
+{
+var updatedPost = new UpdatePostDto
+{
+    PostId = editPostId,
+    Title = editTitle,
+    Content = editContent,
+    UserId = userId
+};
+
+await HttpPostService.UpdateAsync(editPostId, updatedPost);
+
+// Refresh posts list
+await LoadPosts();
+CancelEdit();
+}
+catch (Exception e)
+{
+errorMessage = $"Error updating post: {e.Message}";
+}
+}
+
+private void CancelEdit()
+{
+isEditing = false;
+editPostId = 0;
+editTitle = string.Empty;
+editContent = string.Empty;
+}
+
+private async Task DeletePost(int postId)
+{
+try
+{
+await HttpPostService.DeleteAsync(postId);
+await LoadPosts();
+}
+catch (Exception e)
+{
+errorMessage = $"Error deleting post: {e.Message}";
+}
+}
+
+private void FilterPosts()
+{
+if (filterUserId > 0)
+{
+filteredPosts = posts.Where(p => p.UserId == filterUserId).ToList();
+}
+else
+{
+filteredPosts = new List<PostDto>(posts);
+}
+}
+
+private void ClearFilter()
+{
+filterUserId = 0;
+filteredPosts = new List<PostDto>(posts);
+}
+
+private async Task ShowPostDetails(int postId)
+{
+try
+{
+selectedPost = posts.SingleOrDefault(p => p.Id == postId);
+comments = new List<CommentDto>();
+if (selectedPost != null)
+{
+comments = [await HttpCommentService.GetSingleAsync(selectedPost.Id)];
+}
+}
+catch (Exception e)
+{
+errorMessage = $"Error loading post details: {e.Message}";
+}
+}
 }
