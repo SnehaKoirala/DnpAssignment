@@ -1,4 +1,6 @@
 ﻿@page "/Post"
+@attribute [Authorize]
+@using System.Security.Claims
 @using ApiContracts.Comment
 @using ApiContracts.Post
 @using BlazorApp.Services
@@ -101,6 +103,7 @@ private string content;
 private int userId;
 private string errorMessage;
 private bool isSuccess;
+[CascadingParameter] public Task<AuthenticationState> State { get; set; }
 
 // Properties for displaying posts
 private List<PostDto> posts = new();
@@ -122,6 +125,18 @@ private int filterUserId;
 protected override async Task OnInitializedAsync()
 {
 await LoadPosts();
+
+AuthenticationState authenticationState = await State; 
+ClaimsPrincipal claimsPrincipal = authenticationState.User; 
+if(claimsPrincipal.Identity is null || !claimsPrincipal.Identity.IsAuthenticated) 
+{ 
+    // the user is not logged in
+    return; 
+} 
+string? userName = claimsPrincipal.Identity?.Name; 
+IEnumerable<Claim> claims = claimsPrincipal.Claims; 
+string userIdAsString = claims.Single(c => c.Type == "Id").Value; 
+userId = int.Parse(userIdAsString);
 }
 
 private async Task AddPost()

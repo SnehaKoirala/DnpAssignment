@@ -81,7 +81,7 @@ public class PostsController : ControllerBase
     
     // GET: /Posts
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<PostDto>>> GetAllPosts()
+    public Task<ActionResult<IEnumerable<PostDto>>> GetAllPosts()
     {
         IEnumerable<Post> posts = postRepo.GetMany();
         List<PostDto> dtos = posts.Select(p => new PostDto
@@ -91,7 +91,7 @@ public class PostsController : ControllerBase
             Content = p.Body,
             UserId = p.UserId
         }).ToList();
-        return Ok(dtos);
+        return Task.FromResult<ActionResult<IEnumerable<PostDto>>>(Ok(dtos));
     }
     
     // GET: /Posts/{id}

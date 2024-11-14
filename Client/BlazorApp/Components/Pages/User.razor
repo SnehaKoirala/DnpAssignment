@@ -1,8 +1,10 @@
 ﻿@page "/User"
+@attribute [Authorize]
 @using ApiContracts
 @using BlazorApp.Services
 @inject HttpUserService HttpUserService
 @rendermode InteractiveServer
+
 <PageTitle>User</PageTitle>
 
 <!-- Creating a new user -->
@@ -78,10 +80,22 @@
     private bool isEditing;
     private int? selectedUserId;
     private int editUserId;
+   
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadUsers();
+        var authenticationState = await State; 
+        var claimsPrincipal = authenticationState.User; 
+        
+        if(claimsPrincipal.Identity is null || !claimsPrincipal.Identity.IsAuthenticated) {
+            // the user is not logged in
+            return; }
+        var userName = claimsPrincipal.Identity?.Name; 
+        var claims = claimsPrincipal.Claims; 
+        var userIdAsString = claims.Single(c => c.Type == "Id").Value;
+        var currentuserID = int.Parse(userIdAsString);
     }
 
     private async Task AddUser()

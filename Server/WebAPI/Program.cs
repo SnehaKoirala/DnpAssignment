@@ -1,4 +1,5 @@
 using FileRepositories;
+using Microsoft.AspNetCore.Authentication;
 using RepositoryContracts;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +15,18 @@ builder.Services.AddScoped<IPostRepository, PostFileRepository>();
 builder.Services.AddScoped<IUserRepository, UserFileRepository>();
 builder.Services.AddScoped<ICommentRepository, CommentFileRepository>();
 
+// Add authentication services
+builder.Services.AddAuthentication("BasicAuthentication")
+    .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("BasicAuthentication", null);
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("ApiScope", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+    });
+});
+
 var app = builder.Build();
 
 app.MapControllers();
@@ -25,5 +38,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 } 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.Run();

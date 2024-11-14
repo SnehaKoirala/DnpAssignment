@@ -101,7 +101,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserDto>>> GetManyUsers()
+    public Task<ActionResult<IEnumerable<UserDto>>> GetManyUsers()
     {
         IEnumerable<User> users = userRepo.GetMany();
         List<UserDto> dtos = users.Select(u => new UserDto
@@ -109,7 +109,7 @@ public class UsersController : ControllerBase
             Id = u.UserId,
             UserName = u.UserName
         }).ToList();
-        return Ok(dtos);
+        return Task.FromResult<ActionResult<IEnumerable<UserDto>>>(Ok(dtos));
     }
     
 
