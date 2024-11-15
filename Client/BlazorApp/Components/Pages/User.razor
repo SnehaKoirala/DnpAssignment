@@ -1,60 +1,112 @@
 ﻿@page "/User"
+@attribute [Authorize]
 @using ApiContracts
 @using BlazorApp.Services
 @inject HttpUserService HttpUserService
 @rendermode InteractiveServer
-<PageTitle>User</PageTitle>
-<h3>Add New User</h3>
 
+<PageTitle>User</PageTitle>
+
+<!-- Creating a new user -->
+<h3>Add New User</h3>
 <div>
     <label>Enter Username:</label>
-    <input @bind="_username" placeholder="Enter username"/> 
-    
+    <input @bind="username" placeholder="Enter username" />
 </div>
 
-<div style="margin-top: 10px; ">
-    <label>Enter Password :</label>
-    <input type="password" @bind="_password" placeholder="Enter password"/>
+<div style="margin-top: 10px;">
+    <label>Enter Password:</label>
+    <input type="password" @bind="password" placeholder="Enter password" />
 </div>
 
 <div style="margin-top: 10px;">
     <button class="btn btn-primary" @onclick="AddUser">Add User</button>
 </div>
 
-<p style="color: red">@_errorMessage</p>
-<p style="color: green" hidden="@(_isSuccess == false)"> User added successfully</p>
+<p style="color: red">@errorMessage</p>
+<p style="color: green" hidden="@(isSuccess == false)">User added successfully</p>
 
-<h3>Existing Users</h3>
-<ul>
-    @foreach (var user in users)
-    {
-        <li>
-            @user.UserName
-            <button class="btn btn-danger" @onclick="() => DeleteUser(user.Id)">Delete</button>
-        </li>
-    }
-</ul>
+<!-- List of users and selection for editing or deleting -->
+<h3>List of Users</h3>
+<div>
+    <label>Select a User:</label>
+    <select @bind="selectedUserId">
+        <option value="">-- Select a User --</option>
+        @foreach (var user in users)
+        {
+            <option value="@user.Id">@user.UserName</option>
+        }
+    </select>
+</div>
+
+<!-- Edit and Delete buttons for selected user -->
+<div style="margin-top: 10px;">
+    <button class="btn btn-warning" @onclick="EditSelectedUser" disabled="@(!selectedUserId.HasValue)">Edit</button>
+    <button class="btn btn-danger" @onclick="DeleteSelectedUser" disabled="@(!selectedUserId.HasValue)" style="margin-left: 10px;">Delete</button>
+</div>
+
+<!-- Edit User Section -->
+@if (isEditing)
+{
+    <div style="margin-top: 20px;">
+        <h3>Edit User</h3>
+        <div>
+            <label>Edit Username:</label>
+            <input @bind="username" placeholder="Edit username" />
+        </div>
+
+        <div style="margin-top: 10px;">
+            <label>Edit Password:</label>
+            <input type="password" @bind="password" placeholder="Edit password" />
+        </div>
+
+        <div style="margin-top: 10px;">
+            <button class="btn btn-success" @onclick="UpdateUser">Save Changes</button>
+            <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+        </div>
+    </div>
+}
 
 @code {
-    private string? _username;
-    private string? _password;
-    private string? _errorMessage;
-    private bool _isSuccess;
-    private List<UserDto> users = new List<UserDto>();
+    private string username;
+    private string password;
+    private string errorMessage;
+    private bool isSuccess;
+
+    // List to hold users
+    private List<UserDto> users = new();
+
+    // Edit user properties
+    private bool isEditing;
+    private int? selectedUserId;
+    private int editUserId;
+   
+    [CascadingParameter] public Task<AuthenticationState> State { get; set; }
+
 
     protected override async Task OnInitializedAsync()
     {
         await LoadUsers();
+        var authenticationState = await State; 
+        var claimsPrincipal = authenticationState.User; 
+        
+        if(claimsPrincipal.Identity is null || !claimsPrincipal.Identity.IsAuthenticated) {
+            // the user is not logged in
+            return; }
+        var userName = claimsPrincipal.Identity?.Name; 
+        var claims = claimsPrincipal.Claims; 
+        var userIdAsString = claims.Single(c => c.Type == "Id").Value;
+        var currentuserID = int.Parse(userIdAsString);
     }
 
     private async Task AddUser()
     {
-        _errorMessage = string.Empty;
-        _isSuccess = false;
+        errorMessage = string.Empty;
+        isSuccess = false;
 
-        if (string.IsNullOrWhiteSpace(_username) || string.IsNullOrWhiteSpace(_password))
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
         {
-            _errorMessage = "Username and Password cannot be empty.";
+            errorMessage = "Username and Password cannot be empty.";
             return;
         }
 
@@ -62,16 +114,19 @@
         {
             var newUser = new CreateUserDto
             {
-                UserName = _username,
-                Password = _password
+                UserName = username,
+                Password = password
             };
             await HttpUserService.AddUserAsync(newUser);
+            isSuccess = true;
 
-            _isSuccess = true;
+            // Reload users after adding a new one
+            await LoadUsers();
+            username = password = string.Empty; // Clear input fields
         }
         catch (Exception e)
         {
-            _errorMessage = $"An error occured: {e.Message}";
+            errorMessage = $"An error occurred: {e.Message}";
         }
     }
 
@@ -79,27 +134,75 @@
     {
         try
         {
-            var userList = await HttpUserService.GetManyAsync();
-            users = userList.ToList();
+            users = (await HttpUserService.GetManyAsync()).ToList();
         }
         catch (Exception e)
         {
-            _errorMessage = $"An error occurred while loading users: {e.Message}";
+            errorMessage = $"Error loading users: {e.Message}";
         }
     }
 
-    private async Task DeleteUser(int userId)
+    private void EditSelectedUser()
     {
-        _errorMessage = string.Empty;
+        if (selectedUserId.HasValue)
+        {
+            var user = users.FirstOrDefault(u => u.Id == selectedUserId);
+            if (user != null)
+            {
+                isEditing = true;
+                editUserId = user.Id;
+                username = user.UserName;
+                password = string.Empty; // Empty password for security
+            }
+        }
+    }
+
+    private async Task UpdateUser()
+    {
         try
         {
-            await HttpUserService.DeleteUserAsync(userId);
+            var updatedUser = new UpdateUserDto
+            {
+                UserId = editUserId,
+                UserName = username,
+                Password = password
+            };
+
+            await HttpUserService.UpdateUserAsync(editUserId, updatedUser);
+
+            // Refresh user list
             await LoadUsers();
+            CancelEdit();
         }
         catch (Exception e)
         {
-            _errorMessage = $"An error occurred while deleting the user: {e.Message}";
+            errorMessage = $"Error updating user: {e.Message}";
         }
     }
 
+    private void CancelEdit()
+    {
+        isEditing = false;
+        editUserId = 0;
+        username = string.Empty;
+        password = string.Empty;
+        selectedUserId = null;
+    }
+
+    private async Task DeleteSelectedUser()
+    {
+        if (selectedUserId.HasValue)
+        {
+            try
+            {
+                await HttpUserService.DeleteUserAsync(selectedUserId.Value);
+                await LoadUsers();
+                selectedUserId = null; // Reset selection after deletion
+            }
+            catch (Exception e)
+            {
+                errorMessage = $"Error deleting user: {e.Message}"; 
+            }
+        }
+    }
 }
