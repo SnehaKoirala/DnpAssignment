@@ -14,5 +14,12 @@ public class AppContext : DbContext
         optionsBuilder.UseSqlite("Data Source = app.db");
     }
 
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Comment>()
+            .HasOne(c => c.Post)
+            .WithMany(p => p.Comments)  // Assuming a Post has many Comments
+            .HasForeignKey(c => c.PostId);  // Explicitly sets the FK
+    }
     
 }

@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EfcRepositories.Migrations
 {
     [DbContext(typeof(AppContext))]
-    [Migration("20241118151859_initial")]
-    partial class initial
+    [Migration("20241118224339_bibekVersion")]
+    partial class bibekVersion
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -8,7 +8,9 @@ public class Post
 
     public User User { get; set; } // Navigation Property
     public List<Comment> Comments { get; set; } // Navigation Property
-    
+    public int UserId { get; set; }
+
+
     private Post()
     {
         
@@ -20,7 +22,7 @@ public class Post
         {
             Title = title,
             Body = body,
-            User = user
+            UserId = userId
         };
     }
 }
