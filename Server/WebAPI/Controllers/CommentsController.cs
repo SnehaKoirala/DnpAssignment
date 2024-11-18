@@ -22,7 +22,7 @@ public class CommentsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<CommentDto>> AddComment([FromBody] CreateCommentDto request)
     {
-        Comment comment = new(request.Content, request.PostId, request.UserId);
+        Comment comment = Comment.Create(request.Content, request.PostId, request.UserId);
         Comment created = await commentRepo.AddCommentAsync(comment);
         CommentDto dto = new()
         {

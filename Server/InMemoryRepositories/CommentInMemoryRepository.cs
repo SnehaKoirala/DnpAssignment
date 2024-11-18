@@ -7,7 +7,7 @@ namespace InMemoryRepositories;
 public class CommentInMemoryRepository : ICommentRepository
 {
     private readonly List<Comment> comments = new();
-    public CommentInMemoryRepository()
+   /* public CommentInMemoryRepository()
     {
         // I add a bunch of dummy data.
         // The underscore is a discard, which means I don't care about the result. AddAsync returns the added comment, but I don't need it here.
@@ -42,7 +42,7 @@ public class CommentInMemoryRepository : ICommentRepository
         _ = AddCommentAsync(new Comment("I like my Mowinator3000, it just works", 6, 4)).Result;
         _ = AddCommentAsync(new Comment("It just grows out of control!", 6, 3)).Result;
         _ = AddCommentAsync(new Comment("What color is your carpet?", 6, 1)).Result;
-    }
+    }*/
 
     public Task<Comment> AddCommentAsync(Comment comment)
     {

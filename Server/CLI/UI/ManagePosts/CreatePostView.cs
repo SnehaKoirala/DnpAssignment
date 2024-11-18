@@ -23,7 +23,7 @@ public class CreatePostView
         string? body1 = Console.ReadLine();
         
         // Create a new post with the current user's ID
-        Post newPost = new Post(title1, body1, currentUser.UserId);
+        Post newPost = Post.Create(title1, body1, currentUser.UserId);
 
         Post createdPost = await postRepository.AddAsync(newPost);
 

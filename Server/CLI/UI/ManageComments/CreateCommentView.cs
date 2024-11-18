@@ -30,7 +30,7 @@ public class CreateCommentView
         Console.WriteLine("Enter your comment:");
         string? commentText = Console.ReadLine();
 
-        Comment newComment = new Comment(commentText, postId, currentUser.UserId);
+        Comment newComment = Comment.Create(commentText, postId, currentUser.UserId);
 
         Comment createdComment = await commentRepository.AddCommentAsync(newComment);
 
