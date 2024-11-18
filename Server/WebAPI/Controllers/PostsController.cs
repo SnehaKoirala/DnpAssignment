@@ -23,7 +23,7 @@ public class PostsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<PostDto>> AddPost([FromBody] CreatePostDto request)
     {
-        Post post = new(request.Title, request.Content, request.UserId);
+        Post post = Post.Create(request.Title, request.Content, request.UserId);
         Post created = await postRepo.AddAsync(post);
         PostDto dto = new()
         {
@@ -31,7 +31,7 @@ public class PostsController : ControllerBase
             Title = created.Title,
             Content = created.Body,
             UserId = created.UserId
-        };
+        }; 
         return Created($"/Posts/{dto.Id}", dto);
     }
     

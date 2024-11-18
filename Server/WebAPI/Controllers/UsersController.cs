@@ -15,7 +15,7 @@ public class UsersController : ControllerBase
     {
         this.userRepo = userRepo;
     }
-
+    
 
 // Create Endpoints 
 // POST: /Users
@@ -24,7 +24,7 @@ public class UsersController : ControllerBase
     {
         await VerifyUserNameIsAvailableAsync(request.UserName);
 
-        User user = new(request.UserName, request.Password);
+        User user = Entities.User.Create(request.UserName, request.Password);
         User created = await userRepo.AddUserAsync(user);
         UserDto dto = new()
         {

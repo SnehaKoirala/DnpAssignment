@@ -3,14 +3,14 @@
 @using System.Security.Claims
 @using ApiContracts.Comment
 @using BlazorApp.Services
-@rendermode InteractiveServer 
+@rendermode InteractiveServer
 @inject HttpCommentService HttpCommentService
 @inject HttpPostService HttpPostService
 @inject HttpUserService HttpUserService
 
 <PageTitle>Comments</PageTitle>
 
-<!-- Adding a comment to a post--> 
+<!-- Adding a comment to a post -->
 <h3>Add a Comment to a Post</h3>
 <div>
     <label>Enter Comment:</label>
@@ -20,12 +20,7 @@
 <div style="margin-top: 10px;">
     <label>Enter Post ID:</label>
     <input @bind="postId" type="number" />
-</div>       
-
-<div style="margin-top: 10px;">
-    <label>Enter User ID:</label>
-    <input @bind="userId" type="number" />
-</div>       
+</div>
 
 <div style="margin-top: 10px;">
     <button class="btn btn-primary" @onclick="AddComment">Add Comment</button>
@@ -39,11 +34,11 @@
     @foreach (var comment in comments)
     {
         <li>
-            <b>Post ID:</b> @comment.PostId, 
-            <b>Post Author:</b> @GetAuthorName(comment.PostId) <br />
-            <b>Comment ID:</b> @comment.Id, 
-            <b>Content:</b> @comment.Content, 
-            <b>Commenter:</b> @GetUserName(comment.UserId) 
+            <b>Post ID:</b> @comment.PostId,
+            <b>Post Author:</b> @(postAuthorsCache.TryGetValue(comment.PostId, out var authorName) ? authorName : "Loading...") <br />
+            <b>Comment ID:</b> @comment.Id,
+            <b>Content:</b> @comment.Content,
+            <b>Commenter:</b> @(userNamesCache.TryGetValue(comment.UserId, out var userName) ? userName : "Loading...")
             <button class="btn btn-warning btn-sm" @onclick="() => EditComment(comment)">Edit</button>
             <button class="btn btn-danger btn-sm" @onclick="() => DeleteComment(comment.Id)">Delete</button>
         </li>
@@ -86,34 +81,38 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await State;
+        var user = authState.User;
+
+        if (user.Identity is null || !user.Identity.IsAuthenticated)
+        {
+            errorMessage = "You must be logged in to view or add comments.";
+            return;
+        }
+
+        var userIdClaim = user.Claims.FirstOrDefault(c => c.Type == "Id");
+        if (userIdClaim is null)
+        {
+            errorMessage = "Unable to retrieve user information.";
+            return;
+        }
+
+        userId = int.Parse(userIdClaim.Value);
+
         await LoadComments();
-        AuthenticationState authenticationState = await State; 
-        ClaimsPrincipal claimsPrincipal = authenticationState.User; 
-        if(claimsPrincipal.Identity is null || !claimsPrincipal.Identity.IsAuthenticated) 
-        { 
-            // the user is not logged in
-            return; 
-        } 
-        string? userName = claimsPrincipal.Identity?.Name; 
-        IEnumerable<Claim> claims = claimsPrincipal.Claims; 
-        string userIdAsString = claims.Single(c => c.Type == "Id").Value; 
-        userId = int.Parse(userIdAsString);
+        await PreloadAuthorAndUserNames();
     }
-    
-    
 
     private async Task AddComment()
     {
         errorMessage = string.Empty;
         isSuccess = false;
 
-        if (string.IsNullOrWhiteSpace(content) || postId <= 0 || userId <= 0)
+        if (string.IsNullOrWhiteSpace(content) || postId <= 0)
         {
             errorMessage = string.IsNullOrWhiteSpace(content)
-                ? "Content cannot be empty"
-                : postId <= 0
-                    ? "Post ID must be a positive number"
-                    : "User ID must be a positive number";
+                ? "Content cannot be empty."
+                : "Post ID must be a positive number.";
             return;
         }
 
@@ -130,6 +129,8 @@
 
             // Reload comments after adding a new one
             await LoadComments();
+            await PreloadAuthorAndUserNames();
+            content = string.Empty; // Clear input
         }
         catch (Exception e)
         {
@@ -146,6 +147,22 @@
         catch (Exception e)
         {
             errorMessage = $"Error loading comments: {e.Message}";
+        }
+    }
+
+    private async Task PreloadAuthorAndUserNames()
+    {
+        foreach (var comment in comments)
+        {
+            if (!postAuthorsCache.ContainsKey(comment.PostId))
+            {
+                postAuthorsCache[comment.PostId] = await GetAuthorName(comment.PostId);
+            }
+
+            if (!userNamesCache.ContainsKey(comment.UserId))
+            {
+                userNamesCache[comment.UserId] = await GetUserName(comment.UserId);
+            }
         }
     }
 
@@ -210,6 +227,7 @@
 
             // Refresh comments list
             await LoadComments();
+            await PreloadAuthorAndUserNames();
             CancelEdit();
         }
         catch (Exception e)
@@ -231,6 +249,7 @@
         {
             await HttpCommentService.DeleteCommentAsync(commentId);
             await LoadComments();
+            await PreloadAuthorAndUserNames();
         }
         catch (Exception e)
         {
