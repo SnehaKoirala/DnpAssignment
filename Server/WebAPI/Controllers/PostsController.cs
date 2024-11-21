@@ -1,7 +1,9 @@
 ﻿using ApiContracts;
+using ApiContracts.Comment;
 using ApiContracts.Post;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 
 namespace WebAPI.Controllers;
@@ -81,40 +83,74 @@ public class PostsController : ControllerBase
     
     // GET: /Posts
     [HttpGet]
-    public Task<ActionResult<IEnumerable<PostDto>>> GetAllPosts()
+    public async Task<ActionResult<IEnumerable<Post>>> GetAllPosts([FromQuery] string? postTitleContains = null)
     {
-        IEnumerable<Post> posts = postRepo.GetMany();
-        List<PostDto> dtos = posts.Select(p => new PostDto
-        {
-            Id = p.PostId,
-            Title = p.Title,
-            Content = p.Body,
-            UserId = p.UserId
-        }).ToList();
-        return Task.FromResult<ActionResult<IEnumerable<PostDto>>>(Ok(dtos));
+        IList<Post> posts = await postRepo.GetMany()
+            .Where(
+                p => postTitleContains == null || p.Title.Contains(postTitleContains)
+            ).ToListAsync();
+        return Ok(posts);
     }
     
     // GET: /Posts/{id}
-       [HttpGet("{id}")]
-       public async Task<ActionResult<PostDto>> GetSinglePost([FromRoute] int id)
+       // [HttpGet("{id}")]
+       // public async Task<ActionResult<PostDto>> GetSinglePost([FromRoute] int id)
+       // {
+       //     try
+       //     {
+       //         Post post = await postRepo.GetSingleAsync(id);
+       //         PostDto dto = new()
+       //         {
+       //             Id = post.PostId,
+       //             Title = post.Title,
+       //             Content = post.Body,
+       //             UserId = post.UserId
+       //         };
+       //         return Ok(dto);
+       //     }
+       //     catch (Exception e)
+       //     {
+       //         Console.WriteLine(e);
+       //         return StatusCode(500, $"An error occurred: {e.Message}");
+       //     }
+       // }
+
+       [HttpGet("{id:int}")]
+       public async Task<IResult> GetPost(
+           [FromRoute] int id,
+           [FromQuery] bool includeAuthor,
+           [FromQuery] bool includeComments)
        {
-           try
+           IQueryable<Post> queryForPost = postRepo
+               .GetMany()
+               .Where(p => p.PostId == id)
+               .AsQueryable();
+           if (includeAuthor)
            {
-               Post post = await postRepo.GetSingleAsync(id);
-               PostDto dto = new()
+               queryForPost = queryForPost.Include(p => p.User);
+           }
+
+           if (includeComments)
+           {
+               queryForPost = queryForPost.Include(p => p.Comments);
+           } 
+           PostDto? dto = await queryForPost.Select(post => new PostDto()
+           {
+               Id = post.PostId, 
+               Title = post.Title, 
+               Content = post.Body, 
+               UserId = post.UserId, Author = includeAuthor 
+                   ? new UserDto
                {
-                   Id = post.PostId,
-                   Title = post.Title,
-                   Content = post.Body,
-                   UserId = post.UserId
-               };
-               return Ok(dto);
-           }
-           catch (Exception e)
-           {
-               Console.WriteLine(e);
-               return StatusCode(500, $"An error occurred: {e.Message}");
-           }
+                   Id = post.User.UserId, 
+                   UserName = post.User.UserName
+               } : null, 
+               Comments = includeComments 
+                   ? post.Comments.Select(c => new CommentDto
+               {
+                   Id = c.UserId, Content = c.Body, UserId = c.UserId
+               }).ToList() : new ()
+           }) .FirstOrDefaultAsync(); return dto == null ? Results.NotFound() : Results.Ok(dto);
        }
        
    }
