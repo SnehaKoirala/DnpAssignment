@@ -13,10 +13,16 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+<<<<<<< HEAD
 builder.Services.AddScoped<IPostRepository, EfcPostRepository>();
 builder.Services.AddScoped<IUserRepository, EfcUserRepository>();
 builder.Services.AddScoped<ICommentRepository, EfcCommentRepository>();
 builder.Services.AddDbContext<AppContext>();
+=======
+// builder.Services.AddScoped<IPostRepository, PostFileRepository>();
+// builder.Services.AddScoped<IUserRepository, UserFileRepository>();
+// builder.Services.AddScoped<ICommentRepository, CommentFileRepository>();
+>>>>>>> 9b41c88e1eac0d347d5f99f743020e678ac6355c
 
 // Add authentication services
 builder.Services.AddAuthentication("BasicAuthentication")
@@ -29,6 +35,11 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser();
     });
 });
+
+builder.Services.AddScoped<IPostRepository, EfcPostRepository>();
+builder.Services.AddScoped<IUserRepository, EfcUserRepository>();
+builder.Services.AddScoped<ICommentRepository, EfcCommentRepository>();
+builder.Services.AddDbContext<AppContext>();
 
 var app = builder.Build();
 
