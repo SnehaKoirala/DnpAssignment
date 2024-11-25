@@ -8,7 +8,9 @@ public class Comment
     public int PostId;
     public int CommentId { get; set; }
     public string Body { get; set; }
-    
+
+    [ForeignKey("Post")] public int PostId { get; set; }
+    [ForeignKey("User")] public int UserId { get; set; }
     
     public Post Post { get; set; } //Navigation Property 
     public User User { get; set; } // Naviagation Property 

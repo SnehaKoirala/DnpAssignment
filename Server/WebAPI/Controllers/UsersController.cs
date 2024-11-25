@@ -114,6 +114,17 @@ public class UsersController : ControllerBase
     // }
 
     [HttpGet]
+<<<<<<< HEAD
+    public  async Task<ActionResult<IEnumerable<UserDto>>> GetManyUsers()
+    {
+        IEnumerable<User> users = await userRepo.GetMany().ToListAsync();
+        List<UserDto> dtos = users.Select(u => new UserDto
+        {
+            Id = u.UserId,
+            UserName = u.UserName
+        }).ToList();
+        return Ok(dtos);
+=======
     public async Task<ActionResult<IEnumerable<User>>> GetManyUsers([FromQuery] string? userNameContains = null)
     {
         IList<User> users = await userRepo.GetMany()
@@ -123,14 +134,14 @@ public class UsersController : ControllerBase
                          userNameContains.ToLower()) )
             .ToListAsync(); 
         return Ok(users);
+>>>>>>> 9b41c88e1eac0d347d5f99f743020e678ac6355c
     }
 
     private async Task VerifyUserNameIsAvailableAsync(string? username)
     {
-        var existingUser = await userRepo.GetUserByUsernameAndPasswordAsync(username, null);
-        if (existingUser != null)
+        if (await userRepo.GetMany().AnyAsync(u => u.UserName == username))
         {
-            throw new InvalidOperationException($"Username ' {username}' is already taken. ");
+            throw new InvalidOperationException($"Username '{username}' is already taken.");
         }
     }
 }
