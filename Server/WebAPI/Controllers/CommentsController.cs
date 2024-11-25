@@ -108,20 +108,6 @@ public class CommentsController : ControllerBase
     
     // GET: /Comments
     [HttpGet]
-<<<<<<< HEAD
-    public async  Task<ActionResult<IEnumerable<CommentDto>>> GetAllComments()
-    {
-        IEnumerable<Comment> comments = await commentRepo.GetMany().ToListAsync();
-        List<CommentDto> dtos = comments.Select(c => new CommentDto
-        {
-            Id = c.CommentId,
-            Content = c.Body,
-            PostId = c.PostId,
-            UserId = c.UserId
-        }).ToList();
-        return Ok(dtos);
-    }
-=======
     public async Task<ActionResult<IEnumerable<Comment>>> GetAllComments([FromQuery] string? commentContentContains = null)
     {
         IList<Comment> comments = await commentRepo.GetMany()
@@ -144,6 +130,4 @@ public class CommentsController : ControllerBase
     //     return Task.FromResult<ActionResult<IEnumerable<CommentDto>>>(Ok(dtos));
     // }
     
-
->>>>>>> 9b41c88e1eac0d347d5f99f743020e678ac6355c
 }
