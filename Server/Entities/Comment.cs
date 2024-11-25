@@ -4,8 +4,7 @@ namespace Entities;
 
 public class Comment
 {
-    [ForeignKey("Post")]
-    public int PostId;
+    
     public int CommentId { get; set; }
     public string Body { get; set; }
 
@@ -29,6 +28,5 @@ public class Comment
             UserId = userId
         };
     }
-
-    public int UserId { get; set; }
+    
 }

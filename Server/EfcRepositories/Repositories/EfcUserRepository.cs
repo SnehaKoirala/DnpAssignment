@@ -5,16 +5,7 @@ using RepositoryContracts;
 
 namespace EfcRepositories.Repositories;
 
-<<<<<<< HEAD
-public class EfcUserRepository : IUserRepository
-{
-    private readonly AppContext ctx;
-    
-    public EfcUserRepository(AppContext ctx)
-    {
-        this.ctx = ctx;
-    } 
-=======
+
 public class EfcUserRepository: IUserRepository
 {
     private readonly AppContext ctx;
@@ -23,8 +14,6 @@ public class EfcUserRepository: IUserRepository
         this.ctx = ctx;
     }
 
-
->>>>>>> 9b41c88e1eac0d347d5f99f743020e678ac6355c
     public async Task<User> AddUserAsync(User user)
     {
         EntityEntry<User> entityEntry = await ctx.Users.AddAsync(user);
