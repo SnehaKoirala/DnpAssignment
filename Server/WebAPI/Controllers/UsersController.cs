@@ -1,6 +1,7 @@
 ﻿using ApiContracts;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 namespace WebAPI.Controllers;
 
@@ -100,18 +101,29 @@ public class UsersController : ControllerBase
         }
     }
 
+    // [HttpGet]
+    // public Task<ActionResult<IEnumerable<UserDto>>> GetManyUsers()
+    // {
+    //     IEnumerable<User> users = userRepo.GetMany();
+    //     List<UserDto> dtos = users.Select(u => new UserDto
+    //     {
+    //         Id = u.UserId,
+    //         UserName = u.UserName
+    //     }).ToList();
+    //     return Task.FromResult<ActionResult<IEnumerable<UserDto>>>(Ok(dtos));
+    // }
+
     [HttpGet]
-    public Task<ActionResult<IEnumerable<UserDto>>> GetManyUsers()
+    public async Task<ActionResult<IEnumerable<User>>> GetManyUsers([FromQuery] string? userNameContains = null)
     {
-        IEnumerable<User> users = userRepo.GetMany();
-        List<UserDto> dtos = users.Select(u => new UserDto
-        {
-            Id = u.UserId,
-            UserName = u.UserName
-        }).ToList();
-        return Task.FromResult<ActionResult<IEnumerable<UserDto>>>(Ok(dtos));
+        IList<User> users = await userRepo.GetMany()
+            .Where( 
+                u => userNameContains == null ||
+                     u.UserName.ToLower().Contains(
+                         userNameContains.ToLower()) )
+            .ToListAsync(); 
+        return Ok(users);
     }
-    
 
     private async Task VerifyUserNameIsAvailableAsync(string? username)
     {

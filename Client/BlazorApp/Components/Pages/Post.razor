@@ -262,7 +262,7 @@ selectedPost = posts.SingleOrDefault(p => p.Id == postId);
 comments = new List<CommentDto>();
 if (selectedPost != null)
 {
-comments = [await HttpCommentService.GetSingleAsync(selectedPost.Id)];
+comments = [..await HttpCommentService.GetManyAsync()];
 }
 }
 catch (Exception e)

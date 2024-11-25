@@ -1,6 +1,7 @@
 ﻿using ApiContracts.Comment;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 
 namespace WebAPI.Controllers;
@@ -107,18 +108,27 @@ public class CommentsController : ControllerBase
     
     // GET: /Comments
     [HttpGet]
-    public Task<ActionResult<IEnumerable<CommentDto>>> GetAllComments()
+    public async Task<ActionResult<IEnumerable<Comment>>> GetAllComments([FromQuery] string? commentContentContains = null)
     {
-        IEnumerable<Comment> comments =  commentRepo.GetMany();
-        List<CommentDto> dtos = comments.Select(c => new CommentDto
-        {
-            Id = c.CommentId,
-            Content = c.Body,
-            PostId = c.PostId,
-            UserId = c.UserId
-        }).ToList();
-        return Task.FromResult<ActionResult<IEnumerable<CommentDto>>>(Ok(dtos));
+        IList<Comment> comments = await commentRepo.GetMany()
+            .Where(
+                c => commentContentContains == null || c.Body.Contains(commentContentContains)
+            ).ToListAsync();
+        return Ok(comments);
     }
+    
+    // public Task<ActionResult<IEnumerable<CommentDto>>> GetAllComments()
+    // {
+    //     IEnumerable<Comment> comments =  commentRepo.GetMany();
+    //     List<CommentDto> dtos = comments.Select(c => new CommentDto
+    //     {
+    //         Id = c.CommentId,
+    //         Content = c.Body,
+    //         PostId = c.PostId,
+    //         UserId = c.UserId
+    //     }).ToList();
+    //     return Task.FromResult<ActionResult<IEnumerable<CommentDto>>>(Ok(dtos));
+    // }
     
 
 }
