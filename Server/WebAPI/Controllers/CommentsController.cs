@@ -1,6 +1,7 @@
 ﻿using ApiContracts.Comment;
 using Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RepositoryContracts;
 
 namespace WebAPI.Controllers;
@@ -106,9 +107,9 @@ public class CommentsController : ControllerBase
     
     // GET: /Comments
     [HttpGet]
-    public Task<ActionResult<IEnumerable<CommentDto>>> GetAllComments()
+    public async  Task<ActionResult<IEnumerable<CommentDto>>> GetAllComments()
     {
-        IEnumerable<Comment> comments =  commentRepo.GetMany();
+        IEnumerable<Comment> comments = await commentRepo.GetMany().ToListAsync();
         List<CommentDto> dtos = comments.Select(c => new CommentDto
         {
             Id = c.CommentId,
@@ -116,8 +117,6 @@ public class CommentsController : ControllerBase
             PostId = c.PostId,
             UserId = c.UserId
         }).ToList();
-        return Task.FromResult<ActionResult<IEnumerable<CommentDto>>>(Ok(dtos));
+        return Ok(dtos);
     }
-    
-
 }

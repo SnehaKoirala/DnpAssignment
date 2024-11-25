@@ -1,4 +1,6 @@
-﻿namespace Entities;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Entities;
 
 public class Post
 {
@@ -6,6 +8,8 @@ public class Post
     public string Title { get; set; }
     public string Body { get; set; }
 
+    [ForeignKey("User")] public int UserId { get; set; }
+    
     public User User { get; set; } // Navigation Property
     public List<Comment> Comments { get; set; } // Navigation Property
     
@@ -20,7 +24,7 @@ public class Post
         {
             Title = title,
             Body = body,
-            User = user
+            UserId = userId
         };
     }
 }

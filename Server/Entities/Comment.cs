@@ -1,10 +1,14 @@
-﻿namespace Entities;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Entities;
 
 public class Comment
 {
     public int CommentId { get; set; }
     public string Body { get; set; }
-    
+
+    [ForeignKey("Post")] public int PostId { get; set; }
+    [ForeignKey("User")] public int UserId { get; set; }
     
     public Post Post { get; set; } //Navigation Property 
     public User User { get; set; } // Naviagation Property 
